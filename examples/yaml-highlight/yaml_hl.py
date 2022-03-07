@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import yaml, codecs, sys, os.path, optparse
+import yaml, yaml.common, codecs, sys, os.path, optparse
 
 class Style:
 
@@ -51,11 +51,11 @@ class YAMLHighlight:
     def highlight(self):
         input = self.input.read()
         if input.startswith(codecs.BOM_UTF16_LE):
-            input = unicode(input, 'utf-16-le')
+            input = yaml.common.text_type(input, 'utf-16-le')
         elif input.startswith(codecs.BOM_UTF16_BE):
-            input = unicode(input, 'utf-16-be')
+            input = yaml.common.text_type(input, 'utf-16-be')
         else:
-            input = unicode(input, 'utf-8')
+            input = yaml.common.text_type(input, 'utf-8')
         substitutions = self.style.substitutions
         tokens = yaml.scan(input)
         events = yaml.parse(input)
@@ -111,4 +111,3 @@ if __name__ == '__main__':
     (options, args) = parser.parse_args()
     hl = YAMLHighlight(options)
     hl.highlight()
-

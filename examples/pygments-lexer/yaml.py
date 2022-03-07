@@ -3,7 +3,7 @@
 yaml.py
 
 Lexer for YAML, a human-friendly data serialization language
-(http://yaml.org/).
+(https://yaml.org/).
 
 Written by Kirill Simonov <xi@resolvent.net>.
 
@@ -427,5 +427,3 @@ class YAMLLexer(ExtendedRegexLexer):
         if context is None:
             context = YAMLLexerContext(text, 0)
         return super(YAMLLexer, self).get_tokens_unprocessed(text, context)
-
-

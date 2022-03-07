@@ -2,19 +2,20 @@
 /dist/*
 /build/*
 /lib/PyYAML.egg-info/*
-/lib3/PyYAML.egg-info/*
 /wheelhouse/*
 /yaml/_yaml.c
 MANIFEST
 **/*.so
 **/*.dylib
 **/*.pyd
-
+.pytest_cache/
+PyYAML*/
+/libyaml/
 
 # cached Python binaries
 *.py[cdo]
 _pycache_/*
+.package.lock
+.tox/
 
-# local IDE state
-/.idea/*
-
+.DS_Store
