@@ -1,0 +1,72 @@
+{
+    "python.analysis.extraPaths": ["${workspaceFolder}", "lib", "tests/lib"],
+    "python.envFile": "${workspaceFolder}/.env",
+    "python.testing.pytestArgs": [
+        "tests"
+    ],
+    "[python]": {
+        "editor.formatOnSave": false
+    },
+    "editor.formatOnSave": false,
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true,
+    "files.exclude": {
+        "build/**/*.py": true,
+        "**/.git": true,
+        "**/.svn": true,
+        "**/.hg": true,
+        "**/CVS": true,
+        "**/.DS_Store": true,
+        "**/Thumbs.db": true,
+        "**/*.pyc": true,
+        "**/__pycache__/**": true,
+        "**/.pytest_cache/**": true
+    },
+    "search.exclude": {
+        "build/**": true,
+        "**/.git": true,
+        "**/.svn": true,
+        "**/.hg": true,
+        "**/CVS": true,
+        "**/.DS_Store": true,
+        "**/Thumbs.db": true,
+        "**/*.pyc": true,
+        "**/*.so": true,
+        "**/__pycache__/**": true,
+        "**/.pytest_cache/**": true
+    },
+    "cSpell.words": [
+        "aarch",
+        "ARCHS",
+        "autocrlf",
+        "automake",
+        "bdist",
+        "cibuildwheel",
+        "CIBW",
+        "cmake",
+        "coreutils",
+        "CYTHON",
+        "DYAML_STATIC_LIB_NAME",
+        "Kirill",
+        "libera",
+        "libyaml",
+        "lipo",
+        "manylinux",
+        "mkdir",
+        "noprofile",
+        "norc",
+        "nullglob",
+        "pipefail",
+        "popd",
+        "pushd",
+        "pypa",
+        "pyyaml",
+        "sdist",
+        "sdkroot",
+        "shopt",
+        "Simonov",
+        "smoketest",
+        "workdir",
+        "zdist"
+    ]
+}

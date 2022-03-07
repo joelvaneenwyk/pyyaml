@@ -1,0 +1,72 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [{
+            "name": "setup",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/setup.py",
+            "console": "integratedTerminal",
+            "args": ["build", "test"]
+        },
+        {
+            "name": "test_all",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/tests/lib/test_all.py",
+            "console": "integratedTerminal",
+            "args": ["--verbose"]
+        }, {
+            "name": "test_input_output",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/tests/lib/test_input_output.py",
+            "console": "integratedTerminal",
+            "args": ["--verbose"]
+        }, {
+            "name": "test_representer",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/tests/lib/test_representer.py",
+            "console": "integratedTerminal",
+            "args": ["--verbose"]
+        }, {
+            "name": "test_constructor",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/tests/lib/test_constructor.py",
+            "console": "integratedTerminal",
+            "args": ["--verbose"]
+        }, {
+            "name": "test_errors",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/tests/lib/test_errors.py",
+            "console": "integratedTerminal",
+            "args": ["--verbose"]
+        }, {
+            "name": "test_mark",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/tests/lib/test_mark.py",
+            "console": "integratedTerminal",
+            "args": ["--verbose"]
+        }, {
+            "name": "test_recursive",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/tests/lib/test_mark.py",
+            "console": "integratedTerminal",
+            "args": ["--verbose"]
+        }, {
+            "name": "test_tokens",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/tests/lib/test_tokens.py",
+            "console": "integratedTerminal",
+            "args": ["--verbose"]
+        }
+    ]
+}

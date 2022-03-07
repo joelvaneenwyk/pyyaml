@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="PYTHON_MODULE" version="4">
+  <component name="NewModuleRootManager">
+    <content url="file://$MODULE_DIR$">
+      <sourceFolder url="file://$MODULE_DIR$/lib" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/tests/lib" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/examples/pygments-lexer" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/examples/yaml-highlight" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/yaml" isTestSource="false" />
+      <excludeFolder url="file://$MODULE_DIR$/.tox/venv" />
+      <excludeFolder url="file://$MODULE_DIR$/build" />
+      <excludeFolder url="file://$MODULE_DIR$/.pytest_cache" />
+      <excludeFolder url="file://$MODULE_DIR$/dist" />
+    </content>
+    <orderEntry type="jdk" jdkName="Python 2.7" jdkType="Python SDK" />
+    <orderEntry type="sourceFolder" forTests="false" />
+  </component>
+  <component name="PyDocumentationSettings">
+    <option name="format" value="PLAIN" />
+    <option name="myDocStringFormat" value="Plain" />
+  </component>
+</module>
