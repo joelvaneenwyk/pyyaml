@@ -17,9 +17,13 @@
 
 __all__ = ['Reader', 'ReaderError']
 
-from error import YAMLError, Mark
+from . import common
+from .error import YAMLError, Mark
 
 import codecs, re, sys
+
+if common.PY3:
+    import io
 
 has_ucs4 = sys.maxunicode > 0xffff
 
@@ -71,12 +75,24 @@ class Reader(object):
         self.index = 0
         self.line = 0
         self.column = 0
-        if isinstance(stream, unicode):
+        if isinstance(stream, common.text_type):
             self.name = "<unicode string>"
             self.check_printable(stream)
             self.buffer = stream+u'\0'
         elif isinstance(stream, str):
             self.name = "<string>"
+            self.raw_buffer = stream
+            self.determine_encoding()
+        elif common.PY3 and not isinstance(stream, codecs.StreamReaderWriter) and (
+                isinstance(stream, common.BytesIO)
+                or (not isinstance(stream, io.TextIOBase)) and 'b' in getattr(stream, 'mode', '')):
+            self.stream = stream
+            self.name = getattr(stream, 'name', "<bytes>")
+            self.eof = False
+            self.raw_buffer = b''
+            self.determine_encoding()
+        elif isinstance(stream, common.binary_type):
+            self.name = "<bytes>"
             self.raw_buffer = stream
             self.determine_encoding()
         else:
@@ -124,7 +140,7 @@ class Reader(object):
     def determine_encoding(self):
         while not self.eof and len(self.raw_buffer) < 2:
             self.update_raw()
-        if not isinstance(self.raw_buffer, unicode):
+        if not isinstance(self.raw_buffer, common.text_type):
             if self.raw_buffer.startswith(codecs.BOM_UTF16_LE):
                 self.raw_decode = codecs.utf_16_le_decode
                 self.encoding = 'utf-16-le'
@@ -139,7 +155,7 @@ class Reader(object):
     if has_ucs4:
         NON_PRINTABLE = u'[^\x09\x0A\x0D\x20-\x7E\x85\xA0-\uD7FF\uE000-\uFFFD\U00010000-\U0010ffff]'
     elif sys.platform.startswith('java'):
-        # Jython doesn't support lone surrogates https://bugs.jython.org/issue2048 
+        # Jython doesn't support lone surrogates https://bugs.jython.org/issue2048
         NON_PRINTABLE = u'[^\x09\x0A\x0D\x20-\x7E\x85\xA0-\uD7FF\uE000-\uFFFD]'
     else:
         # Need to use eval here due to the above Jython issue
@@ -165,7 +181,7 @@ class Reader(object):
                 try:
                     data, converted = self.raw_decode(self.raw_buffer,
                             'strict', self.eof)
-                except UnicodeDecodeError, exc:
+                except UnicodeDecodeError as exc:
                     character = exc.object[exc.start]
                     if self.stream is not None:
                         position = self.stream_pointer-len(self.raw_buffer)+exc.start

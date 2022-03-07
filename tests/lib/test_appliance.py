@@ -1,3 +1,4 @@
+import yaml.common
 
 import sys, os, os.path, types, traceback, pprint
 
@@ -12,9 +13,7 @@ def find_test_functions(collections):
     for collection in collections:
         if not isinstance(collection, dict):
             collection = vars(collection)
-        keys = collection.keys()
-        keys.sort()
-        for key in keys:
+        for key in sorted(yaml.common.iterkeys(collection)):
             value = collection[key]
             if isinstance(value, types.FunctionType) and hasattr(value, 'unittest'):
                 functions.append(value)
@@ -25,14 +24,14 @@ def find_test_filenames(directory):
     for filename in os.listdir(directory):
         if os.path.isfile(os.path.join(directory, filename)):
             base, ext = os.path.splitext(filename)
-            if base.endswith('-py3'):
+            if yaml.common.PY3 and base.endswith('-py2'):
+                continue
+            if yaml.common.PY2 and base.endswith('-py3'):
                 continue
             if not has_ucs4 and base.find('-ucs4-') > -1:
                 continue
             filenames.setdefault(base, []).append(ext)
-    filenames = filenames.items()
-    filenames.sort()
-    return filenames
+    return sorted(yaml.common.iteritems(filenames))
 
 def parse_arguments(args):
     if args is None:
@@ -58,7 +57,9 @@ def parse_arguments(args):
     return include_functions, include_filenames, verbose
 
 def execute(function, filenames, verbose):
-    if hasattr(function, 'unittest_name'):
+    if yaml.common.PY3:
+        name = function.__name__
+    elif hasattr(function, 'unittest_name'):
         name = function.unittest_name
     else:
         name = function.func_name
@@ -67,7 +68,7 @@ def execute(function, filenames, verbose):
         sys.stdout.write('%s(%s)...\n' % (name, ', '.join(filenames)))
     try:
         function(verbose=verbose, *filenames)
-    except Exception, exc:
+    except Exception as exc:
         info = sys.exc_info()
         if isinstance(exc, AssertionError):
             kind = 'FAILURE'
@@ -78,6 +79,7 @@ def execute(function, filenames, verbose):
         else:
             sys.stdout.write(kind[0])
             sys.stdout.flush()
+        raise
     else:
         kind = 'SUCCESS'
         info = None
@@ -131,7 +133,12 @@ def run(collections, args=None):
     include_functions, include_filenames, verbose = parse_arguments(args)
     results = []
     for function in test_functions:
-        if include_functions and function.func_name not in include_functions:
+        if yaml.common.PY3:
+            name = function.__name__
+        else:
+            name = function.func_name
+
+        if include_functions and name not in include_functions:
             continue
         if function.unittest:
             for base, exts in test_filenames:
@@ -154,4 +161,3 @@ def run(collections, args=None):
             result = execute(function, [], verbose)
             results.append(result)
     return display(results, verbose=verbose)
-

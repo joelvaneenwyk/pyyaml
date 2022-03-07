@@ -1,5 +1,4 @@
-
-import yaml, yaml.composer, yaml.constructor, yaml.resolver
+import yaml, yaml.composer, yaml.constructor, yaml.resolver, yaml.common
 
 class CanonicalError(yaml.YAMLError):
     pass
@@ -8,7 +7,7 @@ class CanonicalScanner:
 
     def __init__(self, data):
         try:
-            self.data = unicode(data, 'utf-8')+u'\0'
+            self.data = yaml.common.text_type(data, 'utf-8')+u'\0'
         except UnicodeDecodeError:
             raise CanonicalError("utf-8 stream is expected")
         self.index = 0
@@ -149,7 +148,6 @@ class CanonicalScanner:
         u'P': u'\u2029',
         u'_': u'_',
         u'0': u'\x00',
-
     }
 
     def scan_scalar(self):
@@ -169,7 +167,7 @@ class CanonicalScanner:
                 elif ch in self.QUOTE_CODES:
                     length = self.QUOTE_CODES[ch]
                     code = int(self.data[self.index:self.index+length], 16)
-                    chunks.append(unichr(code))
+                    chunks.append(yaml.common.unichr(code))
                     self.index += length
                 else:
                     if ch not in self.QUOTE_REPLACES:
@@ -357,4 +355,3 @@ def canonical_load_all(stream):
     return yaml.load_all(stream, Loader=CanonicalLoader)
 
 yaml.canonical_load_all = canonical_load_all
-

@@ -1,5 +1,6 @@
-
 import yaml
+
+value = None
 
 class AnInstance:
 
@@ -23,7 +24,8 @@ class AnInstanceWithState(AnInstance):
         self.foo, self.bar = state['attributes']
 
 def test_recursive(recursive_filename, verbose=False):
-    exec open(recursive_filename, 'rb').read()
+    global value
+    exec(open(recursive_filename, 'rb').read())
     value1 = value
     output1 = None
     value2 = None
@@ -37,14 +39,13 @@ def test_recursive(recursive_filename, verbose=False):
         if verbose:
             #print "VALUE1:", value1
             #print "VALUE2:", value2
-            print "OUTPUT1:"
-            print output1
-            print "OUTPUT2:"
-            print output2
+            print("OUTPUT1:")
+            print(output1)
+            print("OUTPUT2:")
+            print(output2)
 
 test_recursive.unittest = ['.recursive']
 
 if __name__ == '__main__':
     import test_appliance
     test_appliance.run(globals())
-

@@ -10,8 +10,12 @@ __all__ = ['Emitter', 'EmitterError']
 
 import sys
 
-from error import YAMLError
-from events import *
+from . import common
+from .error import YAMLError
+from .events import *
+
+if common.PY3:
+    import io, codecs
 
 has_ucs4 = sys.maxunicode > 0xffff
 
@@ -44,6 +48,10 @@ class Emitter(object):
 
         # The stream should have the methods `write` and possibly `flush`.
         self.stream = stream
+
+        # We initialize the stream type to either binary or text depending on the stream which we
+        # will set the first time we call encode.
+        self._stream_type = None
 
         # Encoding can be overridden by STREAM-START.
         self.encoding = None
@@ -189,8 +197,7 @@ class Emitter(object):
                 self.write_version_directive(version_text)
             self.tag_prefixes = self.DEFAULT_TAG_PREFIXES.copy()
             if self.event.tags:
-                handles = self.event.tags.keys()
-                handles.sort()
+                handles = sorted(common.iterkeys(self.event.tags))
                 for handle in handles:
                     prefix = self.event.tags[handle]
                     self.tag_prefixes[prefix] = handle
@@ -551,8 +558,7 @@ class Emitter(object):
         if not handle:
             raise EmitterError("tag handle must not be empty")
         if handle[0] != u'!' or handle[-1] != u'!':
-            raise EmitterError("tag handle must start and end with '!': %r"
-                    % (handle.encode('utf-8')))
+            raise EmitterError("tag handle must start and end with '!': %r" % (handle.encode('utf-8')))
         for ch in handle[1:-1]:
             if not (u'0' <= ch <= u'9' or u'A' <= ch <= u'Z' or u'a' <= ch <= u'z'  \
                     or ch in u'-_'):
@@ -590,8 +596,7 @@ class Emitter(object):
             return tag
         handle = None
         suffix = tag
-        prefixes = self.tag_prefixes.keys()
-        prefixes.sort()
+        prefixes = list(sorted(common.iterkeys(self.tag_prefixes)))
         for prefix in prefixes:
             if tag.startswith(prefix)   \
                     and (prefix == u'!' or len(prefix) < len(tag)):
@@ -611,7 +616,7 @@ class Emitter(object):
                 start = end = end+1
                 data = ch.encode('utf-8')
                 for ch in data:
-                    chunks.append(u'%%%02X' % ord(ch))
+                    chunks.append(u'%%%02X' % ord(ch) if common.PY2 else ch)
         if start < end:
             chunks.append(suffix[start:end])
         suffix_text = u''.join(chunks)
@@ -706,7 +711,7 @@ class Emitter(object):
             if not (ch == u'\n' or u'\x20' <= ch <= u'\x7E'):
                 if (ch == u'\x85' or u'\xA0' <= ch <= u'\uD7FF'
                         or u'\uE000' <= ch <= u'\uFFFD'
-                        or (u'\U00010000' <= ch < u'\U0010ffff')) and ch != u'\uFEFF':
+                        or u'\U00010000' <= ch < u'\U0010ffff') and ch != u'\uFEFF':
                     unicode_characters = True
                     if not self.allow_unicode:
                         special_characters = True
@@ -799,7 +804,7 @@ class Emitter(object):
     def write_stream_start(self):
         # Write BOM if needed.
         if self.encoding and self.encoding.startswith('utf-16'):
-            self.stream.write(u'\uFEFF'.encode(self.encoding))
+            self.stream.write(self.encode(u'\uFEFF'))
 
     def write_stream_end(self):
         self.flush_stream()
@@ -814,9 +819,34 @@ class Emitter(object):
         self.indention = self.indention and indention
         self.column += len(data)
         self.open_ended = False
-        if self.encoding:
-            data = data.encode(self.encoding)
-        self.stream.write(data)
+        self.stream.write(self.encode(data))
+
+    def encode(self, data):
+        if common.PY2:
+            if self.encoding:
+                data = data.encode(self.encoding)
+            elif isinstance(self.stream, common.BytesIO):
+                data = common.ensure_binary(data)
+        else:
+            if self._stream_type is None:
+                if common.PY3 and not isinstance(self.stream, codecs.StreamReaderWriter) and (
+                        isinstance(self.stream, common.BytesIO)
+                        or (not isinstance(self.stream, io.TextIOBase)) and 'b' in getattr(self.stream, 'mode', '')):
+                    self._stream_type = common.binary_type
+                elif common.PY2 and not getattr(self.stream, 'encoding', None) and (
+                        isinstance(getattr(self.stream, 'buf', None), common.binary_type)
+                        or 'b' in getattr(self.stream, 'mode', '')):
+                    self._stream_type = common.binary_type
+                else:
+                    self._stream_type = common.text_type
+
+            if not isinstance(data, self._stream_type):
+                if self._stream_type == common.binary_type:
+                    data = common.ensure_binary(data, encoding=self.encoding or 'utf-8')
+                else:
+                    data = common.ensure_text(data, encoding=self.encoding or 'utf-8')
+
+        return data
 
     def write_indent(self):
         indent = self.indent or 0
@@ -827,9 +857,7 @@ class Emitter(object):
             self.whitespace = True
             data = u' '*(indent-self.column)
             self.column = indent
-            if self.encoding:
-                data = data.encode(self.encoding)
-            self.stream.write(data)
+            self.stream.write(self.encode(data))
 
     def write_line_break(self, data=None):
         if data is None:
@@ -838,22 +866,16 @@ class Emitter(object):
         self.indention = True
         self.line += 1
         self.column = 0
-        if self.encoding:
-            data = data.encode(self.encoding)
-        self.stream.write(data)
+        self.stream.write(self.encode(data))
 
     def write_version_directive(self, version_text):
         data = u'%%YAML %s' % version_text
-        if self.encoding:
-            data = data.encode(self.encoding)
-        self.stream.write(data)
+        self.stream.write(self.encode(data))
         self.write_line_break()
 
     def write_tag_directive(self, handle_text, prefix_text):
         data = u'%%TAG %s %s' % (handle_text, prefix_text)
-        if self.encoding:
-            data = data.encode(self.encoding)
-        self.stream.write(data)
+        self.stream.write(self.encode(data))
         self.write_line_break()
 
     # Scalar streams.
@@ -875,9 +897,7 @@ class Emitter(object):
                     else:
                         data = text[start:end]
                         self.column += len(data)
-                        if self.encoding:
-                            data = data.encode(self.encoding)
-                        self.stream.write(data)
+                        self.stream.write(self.encode(data))
                     start = end
             elif breaks:
                 if ch is None or ch not in u'\n\x85\u2028\u2029':
@@ -895,16 +915,12 @@ class Emitter(object):
                     if start < end:
                         data = text[start:end]
                         self.column += len(data)
-                        if self.encoding:
-                            data = data.encode(self.encoding)
-                        self.stream.write(data)
+                        self.stream.write(self.encode(data))
                         start = end
             if ch == u'\'':
                 data = u'\'\''
                 self.column += 2
-                if self.encoding:
-                    data = data.encode(self.encoding)
-                self.stream.write(data)
+                self.stream.write(self.encode(data))
                 start = end + 1
             if ch is not None:
                 spaces = (ch == u' ')
@@ -945,9 +961,7 @@ class Emitter(object):
                 if start < end:
                     data = text[start:end]
                     self.column += len(data)
-                    if self.encoding:
-                        data = data.encode(self.encoding)
-                    self.stream.write(data)
+                    self.stream.write(self.encode(data))
                     start = end
                 if ch is not None:
                     if ch in self.ESCAPE_REPLACEMENTS:
@@ -959,9 +973,7 @@ class Emitter(object):
                     else:
                         data = u'\\U%08X' % ord(ch)
                     self.column += len(data)
-                    if self.encoding:
-                        data = data.encode(self.encoding)
-                    self.stream.write(data)
+                    self.stream.write(self.encode(data))
                     start = end+1
             if 0 < end < len(text)-1 and (ch == u' ' or start >= end)   \
                     and self.column+(end-start) > self.best_width and split:
@@ -969,18 +981,14 @@ class Emitter(object):
                 if start < end:
                     start = end
                 self.column += len(data)
-                if self.encoding:
-                    data = data.encode(self.encoding)
-                self.stream.write(data)
+                self.stream.write(self.encode(data))
                 self.write_indent()
                 self.whitespace = False
                 self.indention = False
                 if text[start] == u' ':
                     data = u'\\'
                     self.column += len(data)
-                    if self.encoding:
-                        data = data.encode(self.encoding)
-                    self.stream.write(data)
+                    self.stream.write(self.encode(data))
             end += 1
         self.write_indicator(u'"', False)
 
@@ -988,7 +996,7 @@ class Emitter(object):
         hints = u''
         if text:
             if text[0] in u' \n\x85\u2028\u2029':
-                hints += unicode(self.best_indent)
+                hints += common.text_type(self.best_indent)
             if text[-1] not in u'\n\x85\u2028\u2029':
                 hints += u'-'
             elif len(text) == 1 or text[-2] in u'\n\x85\u2028\u2029':
@@ -1030,17 +1038,13 @@ class Emitter(object):
                     else:
                         data = text[start:end]
                         self.column += len(data)
-                        if self.encoding:
-                            data = data.encode(self.encoding)
-                        self.stream.write(data)
+                        self.stream.write(self.encode(data))
                     start = end
             else:
                 if ch is None or ch in u' \n\x85\u2028\u2029':
                     data = text[start:end]
                     self.column += len(data)
-                    if self.encoding:
-                        data = data.encode(self.encoding)
-                    self.stream.write(data)
+                    self.stream.write(self.encode(data))
                     if ch is None:
                         self.write_line_break()
                     start = end
@@ -1074,9 +1078,7 @@ class Emitter(object):
             else:
                 if ch is None or ch in u'\n\x85\u2028\u2029':
                     data = text[start:end]
-                    if self.encoding:
-                        data = data.encode(self.encoding)
-                    self.stream.write(data)
+                    self.stream.write(self.encode(data))
                     if ch is None:
                         self.write_line_break()
                     start = end
@@ -1092,9 +1094,7 @@ class Emitter(object):
         if not self.whitespace:
             data = u' '
             self.column += len(data)
-            if self.encoding:
-                data = data.encode(self.encoding)
-            self.stream.write(data)
+            self.stream.write(self.encode(data))
         self.whitespace = False
         self.indention = False
         spaces = False
@@ -1113,9 +1113,7 @@ class Emitter(object):
                     else:
                         data = text[start:end]
                         self.column += len(data)
-                        if self.encoding:
-                            data = data.encode(self.encoding)
-                        self.stream.write(data)
+                        self.stream.write(self.encode(data))
                     start = end
             elif breaks:
                 if ch not in u'\n\x85\u2028\u2029':
@@ -1134,9 +1132,7 @@ class Emitter(object):
                 if ch is None or ch in u' \n\x85\u2028\u2029':
                     data = text[start:end]
                     self.column += len(data)
-                    if self.encoding:
-                        data = data.encode(self.encoding)
-                    self.stream.write(data)
+                    self.stream.write(self.encode(data))
                     start = end
             if ch is not None:
                 spaces = (ch == u' ')

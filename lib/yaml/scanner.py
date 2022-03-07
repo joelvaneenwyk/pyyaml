@@ -26,8 +26,9 @@
 
 __all__ = ['Scanner', 'ScannerError']
 
-from error import MarkedYAMLError
-from tokens import *
+from . import common
+from .error import MarkedYAMLError
+from .tokens import *
 
 class ScannerError(MarkedYAMLError):
     pass
@@ -283,7 +284,7 @@ class Scanner(object):
         # - should be no longer than 1024 characters.
         # Disabling this procedure will allow simple keys of any length and
         # height (may cause problems if indentation is broken though).
-        for level in self.possible_simple_keys.keys():
+        for level in list(common.iterkeys(self.possible_simple_keys)):
             key = self.possible_simple_keys[level]
             if key.line != self.line  \
                     or self.index-key.index > 1024:
@@ -313,7 +314,7 @@ class Scanner(object):
         # Remove the saved possible key position at the current flow level.
         if self.flow_level in self.possible_simple_keys:
             key = self.possible_simple_keys[self.flow_level]
-            
+
             if key.required:
                 raise ScannerError("while scanning a simple key", key.mark,
                         "could not find expected ':'", self.get_mark())
@@ -362,11 +363,11 @@ class Scanner(object):
 
         # Read the token.
         mark = self.get_mark()
-        
+
         # Add STREAM-START.
         self.tokens.append(StreamStartToken(mark, mark,
             encoding=self.encoding))
-        
+
 
     def fetch_stream_end(self):
 
@@ -380,7 +381,7 @@ class Scanner(object):
 
         # Read the token.
         mark = self.get_mark()
-        
+
         # Add STREAM-END.
         self.tokens.append(StreamEndToken(mark, mark))
 
@@ -388,7 +389,7 @@ class Scanner(object):
         self.done = True
 
     def fetch_directive(self):
-        
+
         # Set the current indentation to -1.
         self.unwind_indent(-1)
 
@@ -515,7 +516,7 @@ class Scanner(object):
         self.tokens.append(BlockEntryToken(start_mark, end_mark))
 
     def fetch_key(self):
-        
+
         # Block context needs additional checks.
         if not self.flow_level:
 
@@ -565,7 +566,7 @@ class Scanner(object):
 
         # It must be a part of a complex key.
         else:
-            
+
             # Block context needs additional checks.
             # (Do we really need them? They will be caught by the parser
             # anyway.)
@@ -831,15 +832,13 @@ class Scanner(object):
         major = self.scan_yaml_directive_number(start_mark)
         if self.peek() != '.':
             raise ScannerError("while scanning a directive", start_mark,
-                    "expected a digit or '.', but found %r"
-                    % self.peek().encode('utf-8'),
+                    "expected a digit or '.', but found %r" % self.peek().encode('utf-8'),
                     self.get_mark())
         self.forward()
         minor = self.scan_yaml_directive_number(start_mark)
         if self.peek() not in u'\0 \r\n\x85\u2028\u2029':
             raise ScannerError("while scanning a directive", start_mark,
-                    "expected a digit or ' ', but found %r"
-                    % self.peek().encode('utf-8'),
+                    "expected a digit or ' ', but found %r" % self.peek().encode('utf-8'),
                     self.get_mark())
         return (major, minor)
 
@@ -848,8 +847,7 @@ class Scanner(object):
         ch = self.peek()
         if not (u'0' <= ch <= u'9'):
             raise ScannerError("while scanning a directive", start_mark,
-                    "expected a digit, but found %r" % ch.encode('utf-8'),
-                    self.get_mark())
+                    "expected a digit, but found %r" % ch.encode('utf-8'), self.get_mark())
         length = 0
         while u'0' <= self.peek(length) <= u'9':
             length += 1
@@ -873,8 +871,7 @@ class Scanner(object):
         ch = self.peek()
         if ch != u' ':
             raise ScannerError("while scanning a directive", start_mark,
-                    "expected ' ', but found %r" % ch.encode('utf-8'),
-                    self.get_mark())
+                    "expected ' ', but found %r" % ch.encode('utf-8'), self.get_mark())
         return value
 
     def scan_tag_directive_prefix(self, start_mark):
@@ -883,8 +880,7 @@ class Scanner(object):
         ch = self.peek()
         if ch not in u'\0 \r\n\x85\u2028\u2029':
             raise ScannerError("while scanning a directive", start_mark,
-                    "expected ' ', but found %r" % ch.encode('utf-8'),
-                    self.get_mark())
+                    "expected ' ', but found %r" % ch.encode('utf-8'), self.get_mark())
         return value
 
     def scan_directive_ignored_line(self, start_mark):
@@ -973,8 +969,7 @@ class Scanner(object):
         ch = self.peek()
         if ch not in u'\0 \r\n\x85\u2028\u2029':
             raise ScannerError("while scanning a tag", start_mark,
-                    "expected ' ', but found %r" % ch.encode('utf-8'),
-                    self.get_mark())
+                    "expected ' ', but found %r" % ch.encode('utf-8'), self.get_mark())
         value = (handle, suffix)
         end_mark = self.get_mark()
         return TagToken(value, start_mark, end_mark)
@@ -1023,14 +1018,14 @@ class Scanner(object):
                 # Unfortunately, folding rules are ambiguous.
                 #
                 # This is the folding according to the specification:
-                
+
                 if folded and line_break == u'\n'   \
                         and leading_non_space and self.peek() not in u' \t':
                     if not breaks:
                         chunks.append(u' ')
                 else:
                     chunks.append(line_break)
-                
+
                 # This is Clark Evans's interpretation (also in the spec
                 # examples):
                 #
@@ -1105,8 +1100,8 @@ class Scanner(object):
         ch = self.peek()
         if ch not in u'\0\r\n\x85\u2028\u2029':
             raise ScannerError("while scanning a block scalar", start_mark,
-                    "expected a comment or a line break, but found %r"
-                        % ch.encode('utf-8'), self.get_mark())
+                    "expected a comment or a line break, but found %r" % ch.encode('utf-8'),
+                    self.get_mark())
         self.scan_line_break()
 
     def scan_block_scalar_indentation(self):
@@ -1220,7 +1215,7 @@ class Scanner(object):
                                     "expected escape sequence of %d hexdecimal numbers, but found %r" %
                                         (length, self.peek(k).encode('utf-8')), self.get_mark())
                     code = int(self.prefix(length), 16)
-                    chunks.append(unichr(code))
+                    chunks.append(common.unichr(code))
                     self.forward(length)
                 elif ch in u'\r\n\x85\u2028\u2029':
                     self.scan_line_break()
@@ -1358,8 +1353,7 @@ class Scanner(object):
         ch = self.peek()
         if ch != u'!':
             raise ScannerError("while scanning a %s" % name, start_mark,
-                    "expected '!', but found %r" % ch.encode('utf-8'),
-                    self.get_mark())
+                    "expected '!', but found %r" % ch.encode('utf-8'), self.get_mark())
         length = 1
         ch = self.peek(length)
         if ch != u' ':
@@ -1370,8 +1364,7 @@ class Scanner(object):
             if ch != u'!':
                 self.forward(length)
                 raise ScannerError("while scanning a %s" % name, start_mark,
-                        "expected '!', but found %r" % ch.encode('utf-8'),
-                        self.get_mark())
+                        "expected '!', but found %r" % ch.encode('utf-8'), self.get_mark())
             length += 1
         value = self.prefix(length)
         self.forward(length)
@@ -1399,13 +1392,12 @@ class Scanner(object):
             length = 0
         if not chunks:
             raise ScannerError("while parsing a %s" % name, start_mark,
-                    "expected URI, but found %r" % ch.encode('utf-8'),
-                    self.get_mark())
+                    "expected URI, but found %r" % ch.encode('utf-8'), self.get_mark())
         return u''.join(chunks)
 
     def scan_uri_escapes(self, name, start_mark):
         # See the specification for details.
-        bytes = []
+        codes = []
         mark = self.get_mark()
         while self.peek() == u'%':
             self.forward()
@@ -1414,11 +1406,17 @@ class Scanner(object):
                     raise ScannerError("while scanning a %s" % name, start_mark,
                             "expected URI escape sequence of 2 hexdecimal numbers, but found %r" %
                                 (self.peek(k).encode('utf-8')), self.get_mark())
-            bytes.append(chr(int(self.prefix(2), 16)))
+            if common.PY2:
+                codes.append(chr(int(self.prefix(2), 16)))
+            else:
+                codes.append(int(self.prefix(2), 16))
             self.forward(2)
         try:
-            value = unicode(''.join(bytes), 'utf-8')
-        except UnicodeDecodeError, exc:
+            if common.PY2:
+                value = common.text_type(''.join(codes), 'utf-8')
+            else:
+                value = bytes(codes).decode('utf-8')
+        except UnicodeDecodeError as exc:
             raise ScannerError("while scanning a %s" % name, start_mark, str(exc), mark)
         return value
 

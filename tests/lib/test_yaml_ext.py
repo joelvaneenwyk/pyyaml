@@ -1,5 +1,4 @@
-
-import yaml._yaml, yaml
+import yaml._yaml, yaml, yaml.common
 import types, pprint, tempfile, sys, os
 
 yaml.PyBaseLoader = yaml.BaseLoader
@@ -117,8 +116,8 @@ def _tear_down():
 
 def test_c_version(verbose=False):
     if verbose:
-        print yaml._yaml.get_version()
-        print yaml._yaml.get_version_string()
+        print(yaml._yaml.get_version())
+        print(yaml._yaml.get_version_string())
     assert ("%s.%s.%s" % yaml._yaml.get_version()) == yaml._yaml.get_version_string(),    \
             (_yaml.get_version(), yaml._yaml.get_version_string())
 
@@ -148,9 +147,9 @@ def _compare_scanners(py_data, c_data, verbose):
             assert py_end == c_end, (py_end, c_end)
     finally:
         if verbose:
-            print "PY_TOKENS:"
+            print("PY_TOKENS:")
             pprint.pprint(py_tokens)
-            print "C_TOKENS:"
+            print("C_TOKENS:")
             pprint.pprint(c_tokens)
 
 def test_c_scanner(data_filename, canonical_filename, verbose=False):
@@ -181,9 +180,9 @@ def _compare_parsers(py_data, c_data, verbose):
                 assert py_value == c_value, (py_event, c_event, attribute)
     finally:
         if verbose:
-            print "PY_EVENTS:"
+            print("PY_EVENTS:")
             pprint.pprint(py_events)
-            print "C_EVENTS:"
+            print("C_EVENTS:")
             pprint.pprint(c_events)
 
 def test_c_parser(data_filename, canonical_filename, verbose=False):
@@ -203,7 +202,7 @@ def _compare_emitters(data, verbose):
     events = list(yaml.parse(data, Loader=yaml.PyLoader))
     c_data = yaml.emit(events, Dumper=yaml.CDumper)
     if verbose:
-        print c_data
+        print(c_data)
     py_events = list(yaml.parse(c_data, Loader=yaml.PyLoader))
     c_events = list(yaml.parse(c_data, Loader=yaml.CLoader))
     try:
@@ -224,11 +223,11 @@ def _compare_emitters(data, verbose):
                 assert value == c_value, (event, c_event, attribute)
     finally:
         if verbose:
-            print "EVENTS:"
+            print("EVENTS:")
             pprint.pprint(events)
-            print "PY_EVENTS:"
+            print("PY_EVENTS:")
             pprint.pprint(py_events)
-            print "C_EVENTS:"
+            print("C_EVENTS:")
             pprint.pprint(c_events)
 
 def test_c_emitter(data_filename, canonical_filename, verbose=False):
@@ -248,7 +247,7 @@ def test_large_file(verbose=False):
         return
     with tempfile.TemporaryFile() as temp_file:
         for i in range(2**(SIZE_FILE-SIZE_ITERATION-SIZE_LINE) + 1):
-            temp_file.write(('-' + (' ' * (2**SIZE_LINE-4))+ '{}\n')*(2**SIZE_ITERATION))
+            temp_file.write(yaml.common.binary_type('-' + (' ' * (2**SIZE_LINE-4))+ '{}\n')*(2**SIZE_ITERATION))
         temp_file.seek(0)
         yaml.load(temp_file, Loader=yaml.CLoader)
 
@@ -261,11 +260,14 @@ def wrap_ext_function(function):
             function(*args, **kwds)
         finally:
             _tear_down()
-    try:
-        wrapper.func_name = '%s_ext' % function.func_name
-    except TypeError:
-        pass
-    wrapper.unittest_name = '%s_ext' % function.func_name
+    if yaml.common.PY2:
+        try:
+            wrapper.func_name = '%s_ext' % function.func_name
+        except TypeError:
+            pass
+        wrapper.unittest_name = '%s_ext' % function.func_name
+    else:
+        wrapper.__name__ = '%s_ext' % function.__name__
     wrapper.unittest = function.unittest
     wrapper.skip = getattr(function, 'skip', [])+['.skip-ext']
     return wrapper
@@ -277,15 +279,17 @@ def wrap_ext(collections):
     for collection in collections:
         if not isinstance(collection, dict):
             collection = vars(collection)
-        keys = collection.keys()
-        keys.sort()
-        for key in keys:
+        for key in sorted(yaml.common.iterkeys(collection)):
             value = collection[key]
             if isinstance(value, types.FunctionType) and hasattr(value, 'unittest'):
                 functions.append(wrap_ext_function(value))
     for function in functions:
-        assert function.unittest_name not in globals()
-        globals()[function.unittest_name] = function
+        if yaml.common.PY3:
+            assert function.__name__ not in globals()
+            globals()[function.__name__] = function
+        else:
+            assert function.unittest_name not in globals()
+            globals()[function.unittest_name] = function
 
 import test_tokens, test_structure, test_errors, test_resolver, test_constructor,   \
         test_emitter, test_representer, test_recursive, test_input_output
@@ -295,4 +299,3 @@ wrap_ext([test_tokens, test_structure, test_errors, test_resolver, test_construc
 if __name__ == '__main__':
     import test_appliance
     test_appliance.run(globals())
-

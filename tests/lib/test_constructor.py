@@ -1,4 +1,3 @@
-
 import yaml
 import pprint
 
@@ -7,10 +6,13 @@ try:
     set
 except NameError:
     from sets import Set as set
-import yaml.tokens
+import yaml.tokens, yaml.common
+
+value = None
 
 def execute(code):
-    exec code
+    global value
+    exec(code)
     return value
 
 def _make_objects():
@@ -158,19 +160,20 @@ def _make_objects():
         def __setstate__(self, state):
             self.foo, self.bar, self.baz = state
 
-    class InitArgs(AnInstance):
-        def __getinitargs__(self):
-            return (self.foo, self.bar, self.baz)
-        def __getstate__(self):
-            return {}
+    if yaml.common.PY2:
+        class InitArgs(AnInstance):
+            def __getinitargs__(self):
+                return (self.foo, self.bar, self.baz)
+            def __getstate__(self):
+                return {}
 
-    class InitArgsWithState(AnInstance):
-        def __getinitargs__(self):
-            return (self.foo, self.bar)
-        def __getstate__(self):
-            return self.baz
-        def __setstate__(self, state):
-            self.baz = state
+        class InitArgsWithState(AnInstance):
+            def __getinitargs__(self):
+                return (self.foo, self.bar)
+            def __getstate__(self):
+                return self.baz
+            def __setstate__(self, state):
+                self.baz = state
 
     class NewArgs(AnObject):
         def __getnewargs__(self):
@@ -185,6 +188,10 @@ def _make_objects():
             return self.baz
         def __setstate__(self, state):
             self.baz = state
+
+    if yaml.common.PY3:
+        InitArgs = NewArgs
+        InitArgsWithState = NewArgsWithState
 
     class Reduce(AnObject):
         def __reduce__(self):
@@ -249,7 +256,7 @@ def _serialize_value(data):
         return '[%s]' % ', '.join(map(_serialize_value, data))
     elif isinstance(data, dict):
         items = []
-        for key, value in data.items():
+        for key, value in yaml.common.iteritems(data):
             key = _serialize_value(key)
             value = _serialize_value(value)
             items.append("%s: %s" % (key, value))
@@ -257,12 +264,14 @@ def _serialize_value(data):
         return '{%s}' % ', '.join(items)
     elif isinstance(data, datetime.datetime):
         return repr(data.utctimetuple())
-    elif isinstance(data, unicode):
-        return data.encode('utf-8')
+    elif yaml.common.PY2 and isinstance(data, yaml.common.string_types):
+        return yaml.common.ensure_str(data)
+    elif yaml.common.PY3 and isinstance(data, yaml.common.binary_type):
+        return repr(data)[2:-1]
     elif isinstance(data, float) and data != data:
         return '?'
     else:
-        return str(data)
+        return yaml.common.text_type(data)
 
 def test_constructor_types(data_filename, code_filename, verbose=False):
     _make_objects()
@@ -279,16 +288,16 @@ def test_constructor_types(data_filename, code_filename, verbose=False):
         except TypeError:
             pass
         if verbose:
-            print "SERIALIZED NATIVE1:"
-            print _serialize_value(native1)
-            print "SERIALIZED NATIVE2:"
-            print _serialize_value(native2)
+            print("SERIALIZED NATIVE1:")
+            print(_serialize_value(native1))
+            print("SERIALIZED NATIVE2:")
+            print(_serialize_value(native2))
         assert _serialize_value(native1) == _serialize_value(native2), (native1, native2)
     finally:
         if verbose:
-            print "NATIVE1:"
+            print("NATIVE1:")
             pprint.pprint(native1)
-            print "NATIVE2:"
+            print("NATIVE2:")
             pprint.pprint(native2)
 
 test_constructor_types.unittest = ['.data', '.code']
@@ -322,4 +331,3 @@ if __name__ == '__main__':
     sys.modules['test_constructor'] = sys.modules['__main__']
     import test_appliance
     test_appliance.run(globals())
-

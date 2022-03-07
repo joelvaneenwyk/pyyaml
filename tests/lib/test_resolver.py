@@ -1,4 +1,3 @@
-
 import yaml
 import pprint
 
@@ -6,17 +5,19 @@ def test_implicit_resolver(data_filename, detect_filename, verbose=False):
     correct_tag = None
     node = None
     try:
-        correct_tag = open(detect_filename, 'rb').read().strip()
-        node = yaml.compose(open(data_filename, 'rb'))
+        with open(detect_filename, 'r') as file:
+            correct_tag = file.read().strip()
+        with open(data_filename, 'rb') as file:
+            node = yaml.compose(file)
         assert isinstance(node, yaml.SequenceNode), node
         for scalar in node.value:
             assert isinstance(scalar, yaml.ScalarNode), scalar
             assert scalar.tag == correct_tag, (scalar.tag, correct_tag)
     finally:
         if verbose:
-            print "CORRECT TAG:", correct_tag
+            print("CORRECT TAG:", correct_tag)
             if hasattr(node, 'value'):
-                print "CHILDREN:"
+                print("CHILDREN:")
                 pprint.pprint(node.value)
 
 test_implicit_resolver.unittest = ['.data', '.detect']
@@ -67,7 +68,7 @@ def test_path_resolver_loader(data_filename, path_filename, verbose=False):
             assert data1 == data2, (data1, data2)
     finally:
         if verbose:
-            print yaml.serialize_all(nodes1)
+            print(yaml.serialize_all(nodes1))
 
 test_path_resolver_loader.unittest = ['.data', '.path']
 
@@ -76,7 +77,7 @@ def test_path_resolver_dumper(data_filename, path_filename, verbose=False):
     for filename in [data_filename, path_filename]:
         output = yaml.serialize_all(yaml.compose_all(open(filename, 'rb')), Dumper=MyDumper)
         if verbose:
-            print output
+            print(output)
         nodes1 = yaml.compose_all(output)
         nodes2 = yaml.compose_all(open(data_filename, 'rb'))
         for node1, node2 in zip(nodes1, nodes2):
@@ -89,4 +90,3 @@ test_path_resolver_dumper.unittest = ['.data', '.path']
 if __name__ == '__main__':
     import test_appliance
     test_appliance.run(globals())
-

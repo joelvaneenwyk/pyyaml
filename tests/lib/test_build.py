@@ -1,4 +1,3 @@
-
 if __name__ == '__main__':
     import sys, os, distutils.util
     build_lib = 'build/lib'

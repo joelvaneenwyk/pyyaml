@@ -1,8 +1,8 @@
-
-import yaml
+import yaml, yaml.common
 
 def test_marks(marks_filename, verbose=False):
-    inputs = open(marks_filename, 'rb').read().split('---\n')[1:]
+    with open(marks_filename, 'r') as file:
+        inputs = file.read().split('---\n')[1:]
     for input in inputs:
         index = 0
         line = 0
@@ -14,10 +14,10 @@ def test_marks(marks_filename, verbose=False):
             else:
                 column += 1
             index += 1
-        mark = yaml.Mark(marks_filename, index, line, column, unicode(input), index)
+        mark = yaml.Mark(marks_filename, index, line, column, input, index)
         snippet = mark.get_snippet(indent=2, max_length=79)
         if verbose:
-            print snippet
+            print(snippet)
         assert isinstance(snippet, str), type(snippet)
         assert snippet.count('\n') == 1, snippet.count('\n')
         data, pointer = snippet.split('\n')
@@ -29,4 +29,3 @@ test_marks.unittest = ['.marks']
 if __name__ == '__main__':
     import test_appliance
     test_appliance.run(globals())
-

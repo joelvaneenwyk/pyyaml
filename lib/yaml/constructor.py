@@ -8,12 +8,20 @@ __all__ = [
     'ConstructorError'
 ]
 
-from error import *
-from nodes import *
-
 import datetime
+import base64
+import binascii
+import re
+import types
+import sys
 
-import binascii, re, sys, types
+from . import common
+from .error import *
+from .nodes import *
+
+if common.PY3:
+   import collections.abc
+
 
 class ConstructorError(MarkedYAMLError):
     pass
@@ -133,7 +141,7 @@ class BaseConstructor(object):
             data = constructor(self, tag_suffix, node)
         if isinstance(data, types.GeneratorType):
             generator = data
-            data = generator.next()
+            data = common.next(generator)
             if self.deep_construct:
                 for dummy in generator:
                     pass
@@ -168,11 +176,15 @@ class BaseConstructor(object):
         mapping = {}
         for key_node, value_node in node.value:
             key = self.construct_object(key_node, deep=deep)
-            try:
-                hash(key)
-            except TypeError, exc:
+            if common.PY2:
+                try:
+                    hash(key)
+                except TypeError as exc:
+                    raise ConstructorError("while constructing a mapping", node.start_mark,
+                            "found unacceptable key (%s)" % exc, key_node.start_mark)
+            elif not isinstance(key, collections.abc.Hashable):
                 raise ConstructorError("while constructing a mapping", node.start_mark,
-                        "found unacceptable key (%s)" % exc, key_node.start_mark)
+                        "found unhashable key", key_node.start_mark)
             value = self.construct_object(value_node, deep=deep)
             mapping[key] = value
         return mapping
@@ -327,13 +339,15 @@ class SafeConstructor(BaseConstructor):
     def construct_yaml_binary(self, node):
         value = self.construct_scalar(node)
         try:
+            if common.PY3:
+                return base64.b64decode(common.ensure_binary(value))
             return str(value).decode('base64')
-        except (binascii.Error, UnicodeEncodeError), exc:
+        except (binascii.Error, UnicodeEncodeError) as exc:
             raise ConstructorError(None, None,
                     "failed to decode base64 data: %s" % exc, node.start_mark)
 
     timestamp_regexp = re.compile(
-            ur'''^(?P<year>[0-9][0-9][0-9][0-9])
+            r'''^(?P<year>[0-9][0-9][0-9][0-9])
                 -(?P<month>[0-9][0-9]?)
                 -(?P<day>[0-9][0-9]?)
                 (?:(?:[Tt]|[ \t]+)
@@ -426,10 +440,12 @@ class SafeConstructor(BaseConstructor):
 
     def construct_yaml_str(self, node):
         value = self.construct_scalar(node)
-        try:
-            return value.encode('ascii')
-        except UnicodeEncodeError:
-            return value
+        if common.PY2:
+            try:
+                value = value.encode('ascii')
+            except UnicodeEncodeError:
+                pass
+        return value
 
     def construct_yaml_seq(self, node):
         data = []
@@ -521,13 +537,33 @@ class FullConstructor(SafeConstructor):
         return self.state_keys_blacklist_regexp
 
     def construct_python_str(self, node):
-        return self.construct_scalar(node).encode('utf-8')
+        if common.PY2:
+            return self.construct_scalar(node).encode('utf-8')
+        return self.construct_scalar(node)
 
     def construct_python_unicode(self, node):
         return self.construct_scalar(node)
 
+    def construct_python_bytes(self, node):
+        try:
+            value = self.construct_scalar(node).encode('ascii')
+        except UnicodeEncodeError as exc:
+            raise ConstructorError(None, None,
+                    "failed to convert base64 data into ascii: %s" % exc,
+                    node.start_mark)
+        try:
+            if hasattr(base64, 'decodebytes'):
+                return base64.decodebytes(value)
+            else:
+                return base64.decodestring(value)
+        except binascii.Error as exc:
+            raise ConstructorError(None, None,
+                    "failed to decode base64 data: %s" % exc, node.start_mark)
+
     def construct_python_long(self, node):
-        return long(self.construct_yaml_int(node))
+        if common.PY2:
+            return long(self.construct_yaml_int(node))
+        return self.construct_yaml_int(node)
 
     def construct_python_complex(self, node):
        return complex(self.construct_scalar(node))
@@ -542,7 +578,7 @@ class FullConstructor(SafeConstructor):
         if unsafe:
             try:
                 __import__(name)
-            except ImportError, exc:
+            except ImportError as exc:
                 raise ConstructorError("while constructing a Python module", mark,
                         "cannot find module %r (%s)" % (name.encode('utf-8'), exc), mark)
         if name not in sys.modules:
@@ -557,12 +593,12 @@ class FullConstructor(SafeConstructor):
         if u'.' in name:
             module_name, object_name = name.rsplit('.', 1)
         else:
-            module_name = '__builtin__'
+            module_name = '__builtin__' if common.PY2 else 'builtins'
             object_name = name
         if unsafe:
             try:
                 __import__(module_name)
-            except ImportError, exc:
+            except ImportError as exc:
                 raise ConstructorError("while constructing a Python object", mark,
                         "cannot find module %r (%s)" % (module_name.encode('utf-8'), exc), mark)
         if module_name not in sys.modules:
@@ -579,16 +615,14 @@ class FullConstructor(SafeConstructor):
         value = self.construct_scalar(node)
         if value:
             raise ConstructorError("while constructing a Python name", node.start_mark,
-                    "expected the empty value, but found %r" % value.encode('utf-8'),
-                    node.start_mark)
+                    "expected the empty value, but found %r" % value.encode('utf-8'), node.start_mark)
         return self.find_python_name(suffix, node.start_mark)
 
     def construct_python_module(self, suffix, node):
         value = self.construct_scalar(node)
         if value:
             raise ConstructorError("while constructing a Python module", node.start_mark,
-                    "expected the empty value, but found %r" % value.encode('utf-8'),
-                    node.start_mark)
+                    "expected the empty value, but found %r" % value.encode('utf-8'), node.start_mark)
         return self.find_python_module(suffix, node.start_mark)
 
     class classobj: pass
@@ -604,8 +638,7 @@ class FullConstructor(SafeConstructor):
             raise ConstructorError("while constructing a Python instance", node.start_mark,
                     "expected a class, but found %r" % type(cls),
                     node.start_mark)
-        if newobj and isinstance(cls, type(self.classobj))  \
-                and not args and not kwds:
+        if common.PY2 and newobj and isinstance(cls, type(self.classobj)) and not args and not kwds:
             instance = self.classobj()
             instance.__class__ = cls
             return instance
@@ -695,6 +728,10 @@ FullConstructor.add_constructor(
 FullConstructor.add_constructor(
     u'tag:yaml.org,2002:python/unicode',
     FullConstructor.construct_python_unicode)
+
+FullConstructor.add_constructor(
+    'tag:yaml.org,2002:python/bytes',
+    FullConstructor.construct_python_bytes)
 
 FullConstructor.add_constructor(
     u'tag:yaml.org,2002:python/int',

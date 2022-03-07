@@ -1,4 +1,3 @@
-
 import yaml, canonical
 import pprint
 
@@ -48,9 +47,9 @@ def test_structure(data_filename, structure_filename, verbose=False):
         assert nodes1 == nodes2, (nodes1, nodes2)
     finally:
         if verbose:
-            print "NODES1:"
+            print("NODES1:")
             pprint.pprint(nodes1)
-            print "NODES2:"
+            print("NODES2:")
             pprint.pprint(nodes2)
 
 test_structure.unittest = ['.data', '.structure']
@@ -76,9 +75,9 @@ def test_parser(data_filename, canonical_filename, verbose=False):
         _compare_events(events1, events2)
     finally:
         if verbose:
-            print "EVENTS1:"
+            print("EVENTS1:")
             pprint.pprint(events1)
-            print "EVENTS2:"
+            print("EVENTS2:")
             pprint.pprint(events2)
 
 test_parser.unittest = ['.data', '.canonical']
@@ -92,9 +91,9 @@ def test_parser_on_canonical(canonical_filename, verbose=False):
         _compare_events(events1, events2, full=True)
     finally:
         if verbose:
-            print "EVENTS1:"
+            print("EVENTS1:")
             pprint.pprint(events1)
-            print "EVENTS2:"
+            print("EVENTS2:")
             pprint.pprint(events2)
 
 test_parser_on_canonical.unittest = ['.canonical']
@@ -124,9 +123,9 @@ def test_composer(data_filename, canonical_filename, verbose=False):
             _compare_nodes(node1, node2)
     finally:
         if verbose:
-            print "NODES1:"
+            print("NODES1:")
             pprint.pprint(nodes1)
-            print "NODES2:"
+            print("NODES2:")
             pprint.pprint(nodes2)
 
 test_composer.unittest = ['.data', '.canonical']
@@ -139,7 +138,7 @@ def _make_loader():
             return tuple(yaml.Loader.construct_sequence(self, node))
         def construct_mapping(self, node):
             pairs = self.construct_pairs(node)
-            pairs.sort()
+            pairs.sort(key=(lambda i: str(i)))
             return pairs
         def construct_undefined(self, node):
             return self.construct_scalar(node)
@@ -155,7 +154,7 @@ def _make_canonical_loader():
             return tuple(yaml.CanonicalLoader.construct_sequence(self, node))
         def construct_mapping(self, node):
             pairs = self.construct_pairs(node)
-            pairs.sort()
+            pairs.sort(key=(lambda i: str(i)))
             return pairs
         def construct_undefined(self, node):
             return self.construct_scalar(node)
@@ -174,9 +173,9 @@ def test_constructor(data_filename, canonical_filename, verbose=False):
         assert native1 == native2, (native1, native2)
     finally:
         if verbose:
-            print "NATIVE1:"
+            print("NATIVE1:")
             pprint.pprint(native1)
-            print "NATIVE2:"
+            print("NATIVE2:")
             pprint.pprint(native2)
 
 test_constructor.unittest = ['.data', '.canonical']

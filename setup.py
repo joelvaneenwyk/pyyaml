@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 
 NAME = 'PyYAML'
 VERSION = '5.4.1'
@@ -34,6 +35,7 @@ CLASSIFIERS = [
     "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
     "Topic :: Software Development :: Libraries :: Python Modules",
@@ -65,21 +67,26 @@ int main(void) {
 """
 
 
-import sys, os, os.path, platform, warnings
+import warnings
+import platform
+import os.path
+import os
+import sys
+import tempfile
 
-from distutils import log
-from setuptools import setup, Command, Distribution as _Distribution, Extension as _Extension
-from setuptools.command.build_ext import build_ext as _build_ext
 from distutils.errors import DistutilsError, CompileError, LinkError, DistutilsPlatformError
+from setuptools.command.build_ext import build_ext as _build_ext
+from setuptools import setup, Command, Distribution as _Distribution, Extension as _Extension
+from distutils import log
 
 with_cython = False
 if 'sdist' in sys.argv or os.environ.get('PYYAML_FORCE_CYTHON') == '1':
     # we need cython here
-    with_cython = True
+    with_cython = os.environ.get('PYYAML_CYTHON') != '0'
 try:
     from Cython.Distutils.extension import Extension as _Extension
     from Cython.Distutils import build_ext as _build_ext
-    with_cython = True
+    with_cython = os.environ.get('PYYAML_CYTHON') != '0'
 except ImportError:
     if with_cython:
         raise
@@ -92,11 +99,11 @@ except ImportError:
 
 # on Windows, disable wheel generation warning noise
 windows_ignore_warnings = [
-"Unknown distribution option: 'python_requires'",
-"Config variable 'Py_DEBUG' is unset",
-"Config variable 'WITH_PYMALLOC' is unset",
-"Config variable 'Py_UNICODE_SIZE' is unset",
-"Cython directive 'language_level' not set"
+    "Unknown distribution option: 'python_requires'",
+    "Config variable 'Py_DEBUG' is unset",
+    "Config variable 'WITH_PYMALLOC' is unset",
+    "Config variable 'Py_UNICODE_SIZE' is unset",
+    "Cython directive 'language_level' not set"
 ]
 
 if platform.system() == 'Windows':
@@ -151,8 +158,7 @@ class Distribution(_Distribution):
 
 class Extension(_Extension):
 
-    def __init__(self, name, sources, feature_name, feature_description,
-            feature_check, **kwds):
+    def __init__(self, name, sources, feature_name, feature_description, feature_check, **kwds):
         if not with_cython:
             for filename in sources[:]:
                 base, ext = os.path.splitext(filename)
@@ -181,7 +187,7 @@ class build_ext(_build_ext):
                 optional = False
                 disabled = False
                 break
-        if disabled:
+        if disabled or not with_cython:
             return
         try:
             _build_ext.run(self)
@@ -249,12 +255,10 @@ class test(Command):
         build_cmd = self.get_finalized_command('build')
         build_cmd.run()
         sys.path.insert(0, build_cmd.build_lib)
-        if sys.version_info[0] < 3:
-            sys.path.insert(0, 'tests/lib')
-        else:
-            sys.path.insert(0, 'tests/lib3')
+        sys.path.insert(0, 'tests/lib')
+        options = []
         import test_all
-        if not test_all.main([]):
+        if not test_all.main(options):
             raise DistutilsError("Tests failed")
 
 
@@ -282,7 +286,7 @@ if __name__ == '__main__':
         classifiers=CLASSIFIERS,
         project_urls=PROJECT_URLS,
 
-        package_dir={'': {2: 'lib', 3: 'lib3'}[sys.version_info[0]]},
+        package_dir={'': 'lib'},
         packages=['yaml', '_yaml'],
         ext_modules=[
             Extension('yaml._yaml', ['yaml/_yaml.pyx'],

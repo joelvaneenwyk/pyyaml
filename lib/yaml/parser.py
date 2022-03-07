@@ -61,10 +61,10 @@
 
 __all__ = ['Parser', 'ParserError']
 
-from error import MarkedYAMLError
-from tokens import *
-from events import *
-from scanner import *
+from .error import MarkedYAMLError
+from .tokens import *
+from .events import *
+from .scanner import *
 
 class ParserError(MarkedYAMLError):
     pass
@@ -482,7 +482,7 @@ class Parser(object):
                     token = self.peek_token()
                     raise ParserError("while parsing a flow sequence", self.marks[-1],
                             "expected ',' or ']', but got %r" % token.id, token.start_mark)
-            
+
             if self.check_token(KeyToken):
                 token = self.peek_token()
                 event = MappingStartEvent(None, None, True,

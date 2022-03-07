@@ -1,6 +1,7 @@
 
 __all__ = ['Mark', 'YAMLError', 'MarkedYAMLError']
 
+from . import common
 class Mark(object):
 
     def __init__(self, name, index, line, column, buffer, pointer):
@@ -30,7 +31,7 @@ class Mark(object):
                 tail = ' ... '
                 end -= 5
                 break
-        snippet = self.buffer[start:end].encode('utf-8')
+        snippet = self.buffer[start:end] if common.PY3 else self.buffer[start:end].encode('utf-8')
         return ' '*indent + head + snippet + tail + '\n'  \
                 + ' '*(indent+self.pointer-start+len(head)) + '^'
 
@@ -72,4 +73,3 @@ class MarkedYAMLError(YAMLError):
         if self.note is not None:
             lines.append(self.note)
         return '\n'.join(lines)
-
