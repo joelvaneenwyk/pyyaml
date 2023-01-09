@@ -1,4 +1,36 @@
 #!/usr/bin/env python
+"""Setup script for PyYAML package."""
+
+import warnings
+import platform
+import os.path
+import os
+import sys
+
+from distutils import log
+from distutils.errors import DistutilsError, CompileError, LinkError, DistutilsPlatformError
+
+from setuptools.command.build_ext import build_ext as _build_ext
+from setuptools import setup, Command, Distribution as _Distribution, Extension as _Extension
+
+
+WITH_CYTHON = False
+if 'sdist' in sys.argv or os.environ.get('PYYAML_FORCE_CYTHON') == '1':
+    # we need cython here
+    WITH_CYTHON = os.environ.get('PYYAML_CYTHON') != '0'
+
+try:
+    from Cython.Distutils.extension import Extension as _Extension
+    from Cython.Distutils import build_ext as _build_ext
+    WITH_CYTHON = os.environ.get('PYYAML_CYTHON') != '0'
+except ImportError:
+    if WITH_CYTHON:
+        raise
+
+try:
+    from wheel.bdist_wheel import bdist_wheel
+except ImportError:
+    bdist_wheel = None
 
 NAME = 'PyYAML'
 VERSION = '5.4.1'
@@ -66,37 +98,6 @@ int main(void) {
 }
 """
 
-
-import warnings
-import platform
-import os.path
-import os
-import sys
-import tempfile
-
-from distutils.errors import DistutilsError, CompileError, LinkError, DistutilsPlatformError
-from setuptools.command.build_ext import build_ext as _build_ext
-from setuptools import setup, Command, Distribution as _Distribution, Extension as _Extension
-from distutils import log
-
-with_cython = False
-if 'sdist' in sys.argv or os.environ.get('PYYAML_FORCE_CYTHON') == '1':
-    # we need cython here
-    with_cython = os.environ.get('PYYAML_CYTHON') != '0'
-try:
-    from Cython.Distutils.extension import Extension as _Extension
-    from Cython.Distutils import build_ext as _build_ext
-    with_cython = os.environ.get('PYYAML_CYTHON') != '0'
-except ImportError:
-    if with_cython:
-        raise
-
-try:
-    from wheel.bdist_wheel import bdist_wheel
-except ImportError:
-    bdist_wheel = None
-
-
 # on Windows, disable wheel generation warning noise
 windows_ignore_warnings = [
     "Unknown distribution option: 'python_requires'",
@@ -152,14 +153,14 @@ class Distribution(_Distribution):
             except TypeError:
                 pass
             return with_ext
-        else:
-            return True
+
+        return True
 
 
 class Extension(_Extension):
 
     def __init__(self, name, sources, feature_name, feature_description, feature_check, **kwds):
-        if not with_cython:
+        if not WITH_CYTHON:
             for filename in sources[:]:
                 base, ext = os.path.splitext(filename)
                 if ext == '.pyx':
@@ -187,7 +188,7 @@ class build_ext(_build_ext):
                 optional = False
                 disabled = False
                 break
-        if disabled or not with_cython:
+        if disabled or not WITH_CYTHON:
             return
         try:
             _build_ext.run(self)
@@ -203,7 +204,7 @@ class build_ext(_build_ext):
         self.check_extensions_list(self.extensions)
         filenames = []
         for ext in self.extensions:
-            if with_cython:
+            if WITH_CYTHON:
                 self.cython_sources(ext.sources, ext)
             for filename in ext.sources:
                 filenames.append(filename)
@@ -231,7 +232,7 @@ class build_ext(_build_ext):
             with_ext = self.distribution.ext_status(ext)
             if with_ext is not None and not with_ext:
                 continue
-            if with_cython:
+            if WITH_CYTHON:
                 ext.sources = self.cython_sources(ext.sources, ext)
             try:
                 self.build_extension(ext)
