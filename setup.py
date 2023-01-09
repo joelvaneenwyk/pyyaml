@@ -20,8 +20,8 @@ if 'sdist' in sys.argv or os.environ.get('PYYAML_FORCE_CYTHON') == '1':
     WITH_CYTHON = os.environ.get('PYYAML_CYTHON') != '0'
 
 try:
-    from Cython.Distutils.extension import Extension as _Extension
-    from Cython.Distutils import build_ext as _build_ext
+    from Cython.Distutils.extension import Extension as _Extension  # type: ignore[import]
+    from Cython.Distutils import build_ext as _build_ext  # type: ignore[import]
     WITH_CYTHON = os.environ.get('PYYAML_CYTHON') != '0'
 except ImportError:
     if WITH_CYTHON:
@@ -175,7 +175,7 @@ class Extension(_Extension):
         self.neg_option_name = 'without-' + feature_name
 
 
-class build_ext(_build_ext):
+class BuildExtension(_build_ext):
 
     def run(self):
         optional = True
@@ -242,7 +242,7 @@ class build_ext(_build_ext):
                 log.warn("Error compiling module, falling back to pure Python")
 
 
-class test(Command):
+class TestCommand(Command):
 
     user_options = []
 
@@ -258,17 +258,18 @@ class test(Command):
         sys.path.insert(0, build_cmd.build_lib)
         sys.path.insert(0, 'tests/lib')
         options = []
-        import test_all
+        import test_all  # pylint: disable=import-error
         if not test_all.main(options):
             raise DistutilsError("Tests failed")
 
 
-cmdclass = {
-    'build_ext': build_ext,
-    'test': test,
+COMMAND_CLASS = {
+    'build_ext': BuildExtension,
+    'test': TestCommand,
 }
+
 if bdist_wheel:
-    cmdclass['bdist_wheel'] = bdist_wheel
+    COMMAND_CLASS['bdist_wheel'] = bdist_wheel
 
 
 if __name__ == '__main__':
@@ -296,6 +297,6 @@ if __name__ == '__main__':
         ],
 
         distclass=Distribution,
-        cmdclass=cmdclass,
+        cmdclass=COMMAND_CLASS,
         python_requires='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, !=3.5.*',
     )
