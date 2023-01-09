@@ -1,0 +1,5 @@
+{
+    "cSpell.words": ["CYTHON", "Kirill", "LIBYAML", "pyproject", "Simonov", "PYMALLOC"],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true
+}
