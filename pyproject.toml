@@ -1,3 +1,46 @@
 [build-system]
 requires = ["setuptools", "wheel", "Cython"]
 build-backend = "setuptools.build_meta"
+
+################################################
+[tool.pylint.main]
+################################################
+
+################################################
+[tool.pylint.exceptions]
+################################################
+
+# Exceptions that will emit a warning when caught.
+overgeneral-exceptions = ["BaseException", "Exception"]
+
+################################################
+[tool.pylint.format]
+################################################
+
+# Expected format of line ending, e.g. empty (any line ending), LF or CRLF.
+# expected-line-ending-format =
+
+# Regexp for a line that is allowed to be longer than the limit.
+ignore-long-lines = "^\\s*(# )?<?https?://\\S+>?$"
+
+# Number of spaces of indent required inside a hanging or continued line.
+indent-after-paren = 4
+
+# String used as indentation unit. This is usually "    " (4 spaces) or "\t" (1
+# tab).
+indent-string = "    "
+
+# Maximum number of characters on a single line.
+max-line-length = 130
+
+# Maximum number of lines in a module.
+max-module-lines = 1000
+
+################################################
+[tool.pylint."messages control"]
+################################################
+
+disable = [
+    # Ignore bad option values because some values are only supported in Python 3 e.g., "consider-using-with"
+    "consider-using-f-string",
+]
