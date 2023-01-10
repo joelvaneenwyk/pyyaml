@@ -40,7 +40,7 @@ PY2 = sys.version_info[0] == 2
 PY3 = sys.version_info[0] == 3
 PY34 = sys.version_info[0:2] >= (3, 4)
 
-if PY3:
+if sys.version_info[0] >= 3:
     string_types = str,
     integer_types = int,
     class_types = type,
@@ -77,7 +77,7 @@ else:
 if PY34:
     from importlib.util import spec_from_loader
 else:
-    spec_from_loader = None
+    spec_from_loader = None  # type: ignore
 
 
 def _add_doc(func, doc):
@@ -97,7 +97,7 @@ class _LazyDescr(object):
         self.name = name
 
     def __get__(self, obj, tp):
-        result = self._resolve()
+        result = self._resolve()  # type: ignore
         setattr(obj, self.name, result)  # Invokes __set__.
         try:
             # This is a bit ugly, but it avoids running this again by
@@ -195,7 +195,7 @@ class _SixMetaPathImporter(object):
         return None
 
     def find_spec(self, fullname, path, target=None):
-        if fullname in self.known_modules:
+        if fullname in self.known_modules and spec_from_loader:
             return spec_from_loader(fullname, self)
         return None
 
@@ -332,7 +332,7 @@ for attr in _moved_attributes:
     setattr(_MovedItems, attr.name, attr)
     if isinstance(attr, MovedModule):
         _importer._add_module(attr, "moves." + attr.name)
-del attr
+del attr  # type: ignore
 
 _MovedItems._moved_attributes = _moved_attributes
 
@@ -372,9 +372,11 @@ _urllib_parse_moved_attributes = [
     MovedAttribute("uses_query", "urlparse", "urllib.parse"),
     MovedAttribute("uses_relative", "urlparse", "urllib.parse"),
 ]
+attr = None
 for attr in _urllib_parse_moved_attributes:
     setattr(Module_six_moves_urllib_parse, attr.name, attr)
-del attr
+if attr:
+    del attr
 
 Module_six_moves_urllib_parse._moved_attributes = _urllib_parse_moved_attributes
 
@@ -392,6 +394,7 @@ _urllib_error_moved_attributes = [
     MovedAttribute("HTTPError", "urllib2", "urllib.error"),
     MovedAttribute("ContentTooShortError", "urllib", "urllib.error"),
 ]
+
 for attr in _urllib_error_moved_attributes:
     setattr(Module_six_moves_urllib_error, attr.name, attr)
 del attr
@@ -642,7 +645,7 @@ _add_doc(iterlists,
          "Return an iterator over the (key, [values]) pairs of a dictionary.")
 
 
-if PY3:
+if sys.version_info[0] >= 3:
     def b(s):
         return s.encode("latin-1")
 
@@ -758,7 +761,7 @@ else:
 
 
 print_ = getattr(moves.builtins, "print", None)
-if print_ is None:
+if sys.version_info[0] == 2 and print_ is None:
     def print_(*args, **kwargs):
         """The new-style print function for Python 2.4 and 2.5."""
         fp = kwargs.pop("file", sys.stdout)
