@@ -13,7 +13,6 @@ cwd_path = os.path.abspath(os.path.dirname(find_pylintrc() or (os.getcwd() + '/'
 sys.path.insert(0, cwd_path)
 """
 
-
 ################################################
 [tool.pylint.exceptions]
 ################################################
@@ -52,3 +51,115 @@ disable = [
     # Ignore bad option values because some values are only supported in Python 3 e.g., "consider-using-with"
     "consider-using-f-string",
 ]
+
+################################################
+[tool.isort]
+################################################
+
+multi_line_output = 4
+lines_after_imports = -1
+line_length = 130
+force_single_line = false
+length_sort = false
+from_first = false
+force_alphabetical_sort_within_sections = true
+src_paths = ["lib/"]
+
+sections = [
+    # __future__ imports
+    "FUTURE",
+    # standard library
+    "STDLIB",
+    # initialization
+    "INIT",
+    # local folder
+    "LOCALFOLDER",
+    # first party libraries
+    "FIRSTPARTY",
+    # third party libraries
+    "THIRDPARTY",
+]
+
+known_init = ["__init__"]
+known_local_folder = ["canonical", "conftest", "run_all_tests"]
+known_first_party = ["yaml"]
+known_third_party = ["pytest"]
+
+################################################
+[tool.mypy]
+################################################
+
+strict = false
+follow_imports = "normal"
+pretty = true
+show_error_codes = true
+mypy_path = ["lib/", "tests/lib/"]
+raise_exceptions = true
+cache_dir = ".tmp/mypy"
+
+disallow_incomplete_defs = true
+
+warn_redundant_casts = true
+warn_return_any = false
+warn_unreachable = false
+
+check_untyped_defs = false
+
+################################################
+[tool.pyright]
+################################################
+
+reportMissingImports = true
+reportMissingTypeStubs = true
+reportTypeCommentUsage = false
+reportUnusedImport = true
+extraPaths = ["lib/", "tests/lib/"]
+exclude = [
+    "**/.git/",
+    "**/.mypy_cache/",
+    "**/.nox/",
+    "**/.pytest_cache/",
+    "**/.ruff_cache/",
+    "**/.tox/",
+    "**/.venv/",
+    "**/.yarn/",
+    "**/_Packages/",
+    "**/_Packaging/",
+    "**/__PACKAGES__/",
+    "**/__pycache__/",
+    "**/_test/",
+    "**/node_modules/",
+    "Lib/",
+    "Obj/",
+    "cmake-*/",
+
+    "*.build",
+]
+ignore = []
+
+
+################################################
+[tool.pytest.ini_options]
+################################################
+
+minversion = "6.0"
+addopts = [
+    "--capture=tee-sys",
+    "--color=yes",
+    "--doctest-modules",
+    "--doctest-report=ndiff",
+    "--showlocals",
+    "--verbose",
+]
+cache_dir = ".tmp/pytest"
+log_cli = true
+doctest_optionflags = [
+    "ELLIPSIS",
+    "IGNORE_EXCEPTION_DETAIL",
+    "NORMALIZE_WHITESPACE",
+]
+doctest_encoding = "utf-8"
+
+# Order matters for these
+testpaths = ["tests/lib/"]
+norecursedirs = [".*", "_*", "node_modules", "tmp*"]
