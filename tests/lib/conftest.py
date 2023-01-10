@@ -1,11 +1,22 @@
-"""Setup environment for 'pytest' to work."""
+"""
+Setup environment for 'pytest' to work.
+"""
+# cspell:ignore metafunc,maxunicode
 
 import inspect
 import os
 import sys
-import sys, os, os.path, types, traceback, pprint
+import types
+import traceback
+import pprint
 
-from pytest import fixture
+import pytest
+from pytest import fixture, FixtureRequest, Metafunc
+
+try:
+    from typing import List, Optional
+except ImportError:
+    pass
 
 _TEST_DIR = os.path.abspath(os.path.dirname(inspect.getfile(inspect.currentframe())))  # type: ignore[arg-type]
 _LIB_DIR = os.path.abspath(os.path.normpath(os.path.join(_TEST_DIR, os.pardir, os.pardir, 'lib')))
@@ -17,15 +28,88 @@ import yaml.common
 
 
 _DATA_DIR = os.path.abspath(os.path.normpath(os.path.join(_TEST_DIR, os.pardir, 'data')))
-
-has_ucs4 = sys.maxunicode > 0xffff
+_HAS_UCS4_SUPPORT = sys.maxunicode > 0xffff
 
 
 class TestFunctionData(object):
-    def __init__(self):
-        self.filenames = self.find_test_filenames(_DATA_DIR)
+    """
+    Cache of data for test functions.
+    """
 
-    def find_test_functions(self, collections):
+    instance = None  # type: Optional[TestFunctionData]
+
+    def __init__(self, pytest_mode):
+        # type: (bool) -> None
+
+        self.args = sys.argv[1:]
+        self.pytest_mode = pytest_mode or 'pytest' in self.args
+        self.collections = []  # type: List[str]
+
+        import test_yaml
+        self.collections.append(test_yaml)
+        if yaml.__with_libyaml__:
+            import test_yaml_ext
+            self.collections.append(test_yaml_ext)
+
+        self.collections.append(globals())
+        self.test_functions = self._find_test_functions(self.collections)
+        self.test_filenames = self._find_test_filenames(_DATA_DIR)
+
+        args = sys.argv[1:]
+
+        self.verbose = False
+        if '-v' in args:
+            self.verbose = True
+            args.remove('-v')
+        if '--verbose' in args:
+            self.verbose = True
+            args.remove('--verbose')
+        if 'YAML_TEST_VERBOSE' in os.environ:
+            self.verbose = True
+
+        self.include_functions = []
+        self.include_filenames = []
+
+        if args and not self.pytest_mode:
+            if args:
+                self.include_functions.append(args.pop(0))
+            if 'YAML_TEST_FUNCTIONS' in os.environ:
+                self.include_functions.extend(os.environ['YAML_TEST_FUNCTIONS'].split())
+
+            self.include_filenames.extend(args)
+            if 'YAML_TEST_FILENAMES' in os.environ:
+                self.include_filenames.extend(os.environ['YAML_TEST_FILENAMES'].split())
+
+        self.results = []
+        self._function_mapping = {}
+
+        for function in self.test_functions:
+            if yaml.common.PY3:
+                name = function.__name__
+            else:
+                name = function.func_name
+
+            filenames = []
+
+            if self.include_functions and name not in self.include_functions:
+                continue
+            if function.unittest:
+                for base, exts in self.test_filenames:
+                    if self.include_filenames and base not in self.include_filenames:
+                        continue
+                    for ext in function.unittest:
+                        if ext not in exts:
+                            break
+                        filenames.append(os.path.join(_DATA_DIR, base+ext))
+                    else:
+                        skip_exts = getattr(function, 'skip', [])
+                        for skip_ext in skip_exts:
+                            if skip_ext in exts:
+                                break
+
+            self._function_mapping[name] = filenames
+
+    def _find_test_functions(self, collections):
         if not isinstance(collections, list):
             collections = [collections]
         functions = []
@@ -38,7 +122,7 @@ class TestFunctionData(object):
                     functions.append(value)
         return functions
 
-    def find_test_filenames(self, directory):
+    def _find_test_filenames(self, directory):
         filenames = {}
         for filename in os.listdir(directory):
             if os.path.isfile(os.path.join(directory, filename)):
@@ -47,33 +131,10 @@ class TestFunctionData(object):
                     continue
                 if yaml.common.PY2 and base.endswith('-py3'):
                     continue
-                if not has_ucs4 and base.find('-ucs4-') > -1:
+                if not _HAS_UCS4_SUPPORT and base.find('-ucs4-') > -1:
                     continue
                 filenames.setdefault(base, []).append(ext)
         return sorted(yaml.common.iteritems(filenames))
-
-    def parse_arguments(self, args):
-        if args is None:
-            args = sys.argv[1:]
-        verbose = False
-        if '-v' in args:
-            verbose = True
-            args.remove('-v')
-        if '--verbose' in args:
-            verbose = True
-            args.remove('--verbose')
-        if 'YAML_TEST_VERBOSE' in os.environ:
-            verbose = True
-        include_functions = []
-        if args:
-            include_functions.append(args.pop(0))
-        if 'YAML_TEST_FUNCTIONS' in os.environ:
-            include_functions.extend(os.environ['YAML_TEST_FUNCTIONS'].split())
-        include_filenames = []
-        include_filenames.extend(args)
-        if 'YAML_TEST_FILENAMES' in os.environ:
-            include_filenames.extend(os.environ['YAML_TEST_FILENAMES'].split())
-        return include_functions, include_filenames, verbose
 
     def execute(self, function, filenames, verbose):
         if yaml.common.PY3:
@@ -146,146 +207,140 @@ class TestFunctionData(object):
             sys.stdout.write('ERRORS: %s\n' % errors)
         return not (failures or errors)
 
-    def run(self, collections, args=None):
-        test_functions = self.find_test_functions(collections)
-        test_filenames = self.find_test_filenames(_DATA_DIR)
-        include_functions, include_filenames, verbose = self.parse_arguments(args)
-        results = []
-        for function in test_functions:
-            if yaml.common.PY3:
-                name = function.__name__
-            else:
-                name = function.func_name
+    def get_files(self, function, fixture_name):
+        """Return filename for this test."""
+        filenames = self._function_mapping.get(function, None)
+        if filenames is not None:
+            parts = ['.{}'.format(name) for name in set(fixture_name.split('_'))]
+            output_filenames = []
+            for part in parts:
+                output_filenames.extend([filename for filename in filenames if filename.endswith(part)])
+            if output_filenames:
+                filenames = output_filenames
+        return filenames
 
-            if include_functions and name not in include_functions:
-                continue
-            if function.unittest:
-                for base, exts in test_filenames:
-                    if include_filenames and base not in include_filenames:
-                        continue
-                    filenames = []
-                    for ext in function.unittest:
-                        if ext not in exts:
-                            break
-                        filenames.append(os.path.join(DATA, base+ext))
-                    else:
-                        skip_exts = getattr(function, 'skip', [])
-                        for skip_ext in skip_exts:
-                            if skip_ext in exts:
-                                break
-                        else:
-                            result = self.execute(function, filenames, verbose)
-                            results.append(result)
-            else:
-                result = self.execute(function, [], verbose)
-                results.append(result)
-        return self.display(results, verbose=verbose)
+    def get_file(self, function, fixture_name):
+        """Return filename for this test."""
+        files = self.get_files(function, fixture_name)
+        result = files[0] if files else None
+        if result is None:
+            pytest.skip('No test data found for %s' % function)
+        return result
 
-    def get_file(self, request):
-        fixture_name = request.fixturename
-        # test_name = request.node.name
-
-        parts = ['.{}'.format(name) for name in set(fixture_name.split('_'))]
-        for part in parts:
-            for name, entries in self.filenames:
-                if part in entries:
-                    return os.path.join(os.path.join(_DATA_DIR, '{}{}'.format(name, part)))
-
-        return None
+    @staticmethod
+    def get_instance():
+        if TestFunctionData.instance is None:
+            TestFunctionData.instance = TestFunctionData(pytest_mode=True)
+        return TestFunctionData.instance
 
 
-TEST_DATA = TestFunctionData()
+def pytest_generate_tests(metafunc):
+    # type: (Metafunc) -> None
+    for fixture_name in set(metafunc.fixturenames):
+        filenames = TestFunctionData.get_instance().get_files(metafunc.definition.name, fixture_name)
+        if fixture_name not in {'request', 'data'} and filenames:
+            metafunc.parametrize(fixture_name, filenames)
 
 
 @fixture(scope="function", name="verbose")
 def fixture_verbose():
     """Returns the data filename associated with this test."""
-    return True
+    return TestFunctionData.get_instance().verbose
 
 
-def _get_file(request):
-    return TEST_DATA.get_file(request)
-
-
-@fixture(scope="function", name="canonical_filename")
-def fixture_canonical_filename(request):
-    """Returns the data filename associated with this test."""
-    return _get_file(request)
-
-
-@fixture(scope="function", name="code_filename")
-def fixture_code_filename(request):
-    """Returns the data filename associated with this test."""
-    return _get_file(request)
-
-
-@fixture(scope="function", name="data_filename")
-def fixture_data_filename(request):
-    """Returns the data filename associated with this test."""
-    return _get_file(request)
-
-
-@fixture(scope="function", name="detect_filename")
-def fixture_detect_filename(request):
-    """Returns the data filename associated with this test."""
-    return _get_file(request)
-
-
-@fixture(scope="function", name="error_filename")
-def fixture_error_filename(request):
-    """Returns the data filename associated with this test."""
-    return _get_file(request)
-
-
-@fixture(scope="function", name="events_filename")
-def fixture_events_filename(request):
-    """Returns the data filename associated with this test."""
-    return _get_file(request)
-
-
-@fixture(scope="function", name="input_filename")
-def fixture_input_filename(request):
-    """Returns the data filename associated with this test."""
-    return _get_file(request)
-
-
-@fixture(scope="function", name="marks_filename")
-def fixture_marks_filename(request):
-    """Returns the data filename associated with this test."""
-    return _get_file(request)
-
-
-@fixture(scope="function", name="path_filename")
-def fixture_path_filename(request):
-    """Returns the data filename associated with this test."""
-    return _get_file(request)
-
-
-@fixture(scope="function", name="recursive_filename")
-def fixture_recursive_filename(request):
-    """Returns the data filename associated with this test."""
-    return _get_file(request)
-
-
-@fixture(scope="function", name="sorted_filename")
-def fixture_sorted_filename(request):
-    """Returns the data filename associated with this test."""
-    return _get_file(request)
-
-
-@fixture(scope="function", name="structure_filename")
-def fixture_structure_filename(request):
-    """Returns the data filename associated with this test."""
-    return _get_file(request)
-
-
-@fixture(scope="function", name="tokens_filename")
-def fixture_tokens_filename(request):
-    """Returns the data filename associated with this test."""
-    return _get_file(request)
-
-
-@fixture(scope="function", name="unicode_filename")
-def fixture_unicode_filename(request):
-    """Returns the data filename associated with this test."""
-    return _get_file(request)
+# @fixture(scope="function", name="canonical_filename")
+# def fixture_canonical_filename(request):
+#     # type: (FixtureRequest) -> str
+#     """Returns the data filename associated with this test."""
+#     return TestFunctionData.get_instance().get_file(request.node.name, request.fixturename)
+#
+#
+# @fixture(scope="function", name="code_filename")
+# def fixture_code_filename(request):
+#     # type: (FixtureRequest) -> str
+#     """Returns the data filename associated with this test."""
+#     return TestFunctionData.get_instance().get_file(request.node.name, request.fixturename)
+#
+#
+# @fixture(scope="function", name="data_filename")
+# def fixture_data_filename(request):
+#     # type: (FixtureRequest) -> str
+#     """Returns the data filename associated with this test."""
+#     return TestFunctionData.get_instance().get_file(request.node.name, request.fixturename)
+#
+#
+# @fixture(scope="function", name="detect_filename")
+# def fixture_detect_filename(request):
+#     # type: (FixtureRequest) -> str
+#     """Returns the data filename associated with this test."""
+#     return TestFunctionData.get_instance().get_file(request.node.name, request.fixturename)
+#
+#
+# @fixture(scope="function", name="error_filename")
+# def fixture_error_filename(request):
+#     # type: (FixtureRequest) -> str
+#     """Returns the data filename associated with this test."""
+#     return TestFunctionData.get_instance().get_file(request.node.name, request.fixturename)
+#
+#
+# @fixture(scope="function", name="events_filename")
+# def fixture_events_filename(request):
+#     # type: (FixtureRequest) -> str
+#     """Returns the data filename associated with this test."""
+#     return TestFunctionData.get_instance().get_file(request.node.name, request.fixturename)
+#
+#
+# @fixture(scope="function", name="input_filename")
+# def fixture_input_filename(request):
+#     # type: (FixtureRequest) -> str
+#     """Returns the data filename associated with this test."""
+#     return TestFunctionData.get_instance().get_file(request.node.name, request.fixturename)
+#
+#
+# @fixture(scope="function", name="marks_filename")
+# def fixture_marks_filename(request):
+#     # type: (FixtureRequest) -> str
+#     """Returns the data filename associated with this test."""
+#     return TestFunctionData.get_instance().get_file(request.node.name, request.fixturename)
+#
+#
+# @fixture(scope="function", name="path_filename")
+# def fixture_path_filename(request):
+#     # type: (FixtureRequest) -> str
+#     """Returns the data filename associated with this test."""
+#     return TestFunctionData.get_instance().get_file(request.node.name, request.fixturename)
+#
+#
+# @fixture(scope="function", name="recursive_filename")
+# def fixture_recursive_filename(request):
+#     # type: (FixtureRequest) -> str
+#     """Returns the data filename associated with this test."""
+#     return TestFunctionData.get_instance().get_file(request.node.name, request.fixturename)
+#
+#
+# @fixture(scope="function", name="sorted_filename")
+# def fixture_sorted_filename(request):
+#     # type: (FixtureRequest) -> str
+#     """Returns the data filename associated with this test."""
+#     return TestFunctionData.get_instance().get_file(request.node.name, request.fixturename)
+#
+#
+# @fixture(scope="function", name="structure_filename")
+# def fixture_structure_filename(request):
+#     # type: (FixtureRequest) -> str
+#     """Returns the data filename associated with this test."""
+#     return TestFunctionData.get_instance().get_file(request.node.name, request.fixturename)
+#
+#
+# @fixture(scope="function", name="tokens_filename")
+# def fixture_tokens_filename(request):
+#     # type: (FixtureRequest) -> str
+#     """Returns the data filename associated with this test."""
+#     return TestFunctionData.get_instance().get_file(request.node.name, request.fixturename)
+#
+#
+# @fixture(scope="function", name="unicode_filename")
+# def fixture_unicode_filename(request):
+#     # type: (FixtureRequest) -> str
+#     """Returns the data filename associated with this test."""
+#     return TestFunctionData.get_instance().get_file(request.node.name, request.fixturename)
