@@ -1,6 +1,8 @@
 """
 Setup environment for 'pytest' to work.
 """
+# pyright: strict
+# pyright: reportTypeCommentUsage=false
 # cspell:ignore metafunc,maxunicode
 
 import inspect
@@ -12,11 +14,11 @@ import traceback
 from pytest import fixture, Metafunc
 
 try:
-    from typing import List, Optional, Tuple
+    from typing import List, Optional, Tuple, Any, Dict, Set, Generator
 except ImportError:
     pass
 
-_TEST_DIR = os.path.abspath(os.path.dirname(inspect.getfile(inspect.currentframe())))  # type: ignore[arg-type]
+_TEST_DIR = os.path.abspath(str(os.path.dirname(str(inspect.getfile(inspect.currentframe())))))  # type: str
 _LIB_DIR = os.path.abspath(os.path.normpath(os.path.join(_TEST_DIR, os.pardir, os.pardir, 'lib')))
 
 sys.path.insert(0, _LIB_DIR)
@@ -29,10 +31,21 @@ _DATA_DIR = os.path.abspath(os.path.normpath(os.path.join(_TEST_DIR, os.pardir, 
 _HAS_UCS4_SUPPORT = sys.maxunicode > 0xffff
 
 
+class DataFile(object):
+    """Represents a single data file."""
+
+    def __init__(self, filename):
+        # type: (str) -> None
+        self.filename = filename
+        self.name = os.path.basename(filename)
+        self.base, self.extension = os.path.splitext(self.name)
+
+
 class Permutation(object):
     """Represents single permutation for a given function."""
 
     def __init__(self, function, value):
+        # type: (Any, str) -> None
         self.function = function
         self.value = value
         self.name = os.path.basename(value)
@@ -51,17 +64,16 @@ class TestFunctionData(object):
 
         self.args = sys.argv[1:]
         self.pytest_mode = pytest_mode or 'pytest' in self.args
-        self.collections = []  # type: List[str]
+        self.collections = []  # type: List[Any]
 
         import test_yaml  # pylint: disable=import-outside-toplevel
         self.collections.append(test_yaml)
-        if yaml.__with_libyaml__:
+        if yaml.__with_libyaml__:  # type: ignore
             import test_yaml_ext  # pylint: disable=import-outside-toplevel
             self.collections.append(test_yaml_ext)
-
         self.collections.append(globals())
 
-        args = sys.argv[1:]
+        args = sys.argv[1:]  # type: List[str]
 
         self.verbose = False
         if '-v' in args:
@@ -73,8 +85,8 @@ class TestFunctionData(object):
         if 'YAML_TEST_VERBOSE' in os.environ:
             self.verbose = True
 
-        self.include_functions = []
-        self.include_filenames = []
+        self.include_functions = []  # type: List[str]
+        self.include_filenames = []  # type: List[str]
 
         if args and not self.pytest_mode:
             if args:
@@ -86,21 +98,37 @@ class TestFunctionData(object):
             if 'YAML_TEST_FILENAMES' in os.environ:
                 self.include_filenames.extend(os.environ['YAML_TEST_FILENAMES'].split())
 
-        self.results = []
-        self._function_mapping = {}
-        self._extensions_to_filename = {}
+        self.results = []  # type: List[str]
+        self._function_mapping = {}  # type: Dict[str, Any]
+        self._extensions_to_filename = {}  # type: Dict[str, List[DataFile]]
 
-        self.test_functions = self._find_test_functions(self.collections)
-        self.test_filenames = self._find_test_filenames(_DATA_DIR)
+        self.test_filenames = []  # type: List[DataFile]
+        self.functions = {}
+
+        for collection in self.collections:
+            if isinstance(collection, dict):
+                mapping = collection  # type: Dict[str, Any]
+            else:
+                mapping = vars(collection)
+            for key in sorted(yaml.common.iterkeys(mapping)):
+                self._add_function(mapping[key])
+
+        for filename in self._find_test_filenames(_DATA_DIR):
+            file_data = DataFile(filename)
+            self.test_filenames.append(file_data)
+            self._extensions_to_filename.setdefault(file_data.extension, []).append(file_data)
 
     @staticmethod
     def _get_function_name(function):
-        if sys.version_info[0] >= 3:
-            name = function.__name__
-        elif hasattr(function, 'unittest_name'):
+        # type: (Any) -> Optional[str]
+        if hasattr(function, 'unittest_name'):
             name = function.unittest_name
-        else:
+        elif sys.version_info[0] >= 3:
+            name = getattr(function, '__name__', None)
+        elif hasattr(function, 'func_name'):
             name = function.func_name
+        else:
+            name = None
         return name
 
     def parameterize(self, metafunc):
@@ -112,39 +140,31 @@ class TestFunctionData(object):
             if x not in {'request', 'data', 'verbose'}
         ]
         function_name = metafunc.definition.name
-        name = function_name
-        filenames = []
-        function = getattr(metafunc.definition, '_obj', None)
+        function = self._add_function(metafunc)
 
-        if name not in self.test_functions:
-            self.test_functions[name] = function
-
-        if not function or (self.include_functions and name not in self.include_functions):
+        if not function or (self.include_functions and function_name not in self.include_functions):
             return
 
-        is_unit_test = getattr(function, 'unittest', None) or []
-        if name not in self._function_mapping:
-            for base, exts in self.test_filenames:
-                if self.include_filenames and base not in self.include_filenames:
+        filenames = []  # type: List[str]
+        exts = getattr(function, 'unittest', None) or []
+        if function_name not in self._function_mapping:
+            for data_file in self.test_filenames:
+                if self.include_filenames and data_file.base not in self.include_filenames:
                     continue
-                for ext in is_unit_test:
-                    if ext not in exts:
-                        break
-                    filenames.append(os.path.join(_DATA_DIR, base+ext))
-                else:
-                    skip_exts = getattr(function, 'skip', [])
-                    for skip_ext in skip_exts:
-                        if skip_ext in exts:
-                            break
-                    else:
-                        self._function_mapping[name] = filenames
+
+                skip_exts = getattr(function, 'skip', None) or []
+                for ext in exts:
+                    if ext in exts and ext == data_file.extension and ext not in skip_exts:
+                        filenames.append(data_file.filename)
+
+            self._function_mapping[function_name] = filenames
 
         permutations = [
             Permutation(function_name, x)
-            for x in self._function_mapping.get(function_name, None) or []
+            for x in filenames or []
         ]
-        groups = {}
-        extensions = set()
+        groups = {}  # type: Dict[str, Dict[str, Permutation]]
+        extensions = set()  # type: Set[str]
 
         for permutation in permutations:
             if permutation.base not in groups:
@@ -174,7 +194,7 @@ class TestFunctionData(object):
                             extension_to_arg[ext] = arg_name
                             break
 
-            arg_value_tuples = []  # type: Tuple[str, ...]
+            arg_value_tuples = []  # type: List[Tuple[str, ...]]
             arg_ids = []  # type: List[str]
 
             for _group_name, group_permutations in yaml.common.iteritems(groups):
@@ -194,33 +214,30 @@ class TestFunctionData(object):
             metafunc.parametrize(
                 ",".join(arg_names), arg_value_tuples, scope="function", ids=arg_ids)
 
-    def _find_test_functions(self, collections):
-        if not isinstance(collections, list):
-            collections = [collections]
-        functions = {}
-        for collection in collections:
-            if not isinstance(collection, dict):
-                collection = vars(collection)
-            for key in sorted(yaml.common.iterkeys(collection)):
-                value = collection[key]
-                if isinstance(value, types.FunctionType) and hasattr(value, 'unittest'):
-                    functions[TestFunctionData._get_function_name(value)] = value
-        return functions
+    def _add_function(self, function):
+        # type: (Any) -> Optional[Any]
+        if isinstance(function, Metafunc):
+            function_value = getattr(function.definition, '_obj', None)  # type: Optional[Any]
+        else:
+            function_value = function
+        function_name = TestFunctionData._get_function_name(function_value)
+        if function_name not in self.functions and (isinstance(function_value, types.FunctionType) or hasattr(function_value, 'unittest')):
+            self.functions[function_name] = function_value
+        return self.functions.get(function_name, None) if function_name is not None else None
 
     def _find_test_filenames(self, directory):
-        filenames = {}
+        # type: (str) -> Generator[str, None, None]
         for filename in os.listdir(directory):
-            if os.path.isfile(os.path.join(directory, filename)):
-                base, ext = os.path.splitext(filename)
+            path = os.path.join(directory, filename)
+            if os.path.isfile(path):
+                base, _extension = os.path.splitext(filename)
                 if sys.version_info[0] >= 3 and base.endswith('-py2'):
                     continue
                 if sys.version_info[0] >= 2 and base.endswith('-py3'):
                     continue
                 if not _HAS_UCS4_SUPPORT and base.find('-ucs4-') > -1:
                     continue
-                filenames.setdefault(base, []).append(ext)
-                self._extensions_to_filename.setdefault(ext, []).append(filename)
-        return sorted(yaml.common.iteritems(filenames))
+                yield path
 
     def execute(self, function, filenames, verbose):
         name = TestFunctionData._get_function_name(function)
