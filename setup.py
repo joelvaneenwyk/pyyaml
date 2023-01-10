@@ -1,18 +1,19 @@
 #!/usr/bin/env python
 """Setup script for PyYAML package."""
 
-import warnings
-import platform
-import os.path
 import os
+import os.path
+import platform
 import sys
-
+import warnings
 from distutils import log
-from distutils.errors import DistutilsError, CompileError, LinkError, DistutilsPlatformError
+from distutils.errors import CompileError, DistutilsError, DistutilsPlatformError, LinkError
 
+from setuptools import Command
+from setuptools import Distribution as _Distribution
+from setuptools import Extension as _Extension
+from setuptools import setup
 from setuptools.command.build_ext import build_ext as _build_ext
-from setuptools import setup, Command, Distribution as _Distribution, Extension as _Extension
-
 
 WITH_CYTHON = False
 if 'sdist' in sys.argv or os.environ.get('PYYAML_FORCE_CYTHON') == '1':
@@ -20,8 +21,8 @@ if 'sdist' in sys.argv or os.environ.get('PYYAML_FORCE_CYTHON') == '1':
     WITH_CYTHON = os.environ.get('PYYAML_CYTHON') != '0'
 
 try:
-    from Cython.Distutils.extension import Extension as _Extension  # type: ignore[import]
     from Cython.Distutils import build_ext as _build_ext  # type: ignore[import]
+    from Cython.Distutils.extension import Extension as _Extension  # type: ignore[import]
     WITH_CYTHON = os.environ.get('PYYAML_CYTHON') != '0'
 except ImportError:
     if WITH_CYTHON:
@@ -258,8 +259,8 @@ class TestCommand(Command):
         sys.path.insert(0, build_cmd.build_lib)
         sys.path.insert(0, 'tests/lib')
         options = []
-        import test_all  # pylint: disable=import-error
-        if not test_all.main(options):
+        import run_all_tests  # pylint: disable=import-error
+        if not run_all_tests.main(options):
             raise DistutilsError("Tests failed")
 
 

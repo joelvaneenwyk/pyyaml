@@ -1,4 +1,7 @@
-import yaml, canonical
+import yaml
+
+import canonical
+
 
 def test_canonical_scanner(canonical_filename, verbose=False):
     data = open(canonical_filename, 'rb').read()

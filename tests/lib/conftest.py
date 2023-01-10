@@ -8,17 +8,26 @@ Setup environment for 'pytest' to work.
 import inspect
 import os
 import sys
-import types
 import traceback
+import types
 
-from pytest import fixture, Metafunc
+from pytest import fixture
 
 try:
-    from typing import List, Optional, Tuple, Any, Dict, Generator, Union
+    from typing import TYPE_CHECKING
+
+    if TYPE_CHECKING:
+        from typing import Any, Dict, Generator, List, Optional, Tuple, Union
 except ImportError:
     pass
 
-_TEST_DIR = os.path.abspath(str(os.path.dirname(str(inspect.getfile(inspect.currentframe())))))  # type: str
+try:
+    from pytest import Metafunc
+except ImportError:
+    from _pytest.python import Metafunc
+
+_FRAME = inspect.currentframe()
+_TEST_DIR = os.path.abspath(os.path.dirname(inspect.getfile(_FRAME) if _FRAME else __file__))
 _LIB_DIR = os.path.abspath(os.path.normpath(os.path.join(_TEST_DIR, os.pardir, os.pardir, 'lib')))
 
 sys.path.insert(0, _LIB_DIR)
@@ -26,9 +35,8 @@ sys.path.insert(0, _TEST_DIR)
 
 import yaml.common  # pylint: disable=wrong-import-position
 
-
-_DATA_DIR = os.path.abspath(os.path.normpath(os.path.join(_TEST_DIR, os.pardir, 'data')))
-_HAS_UCS4_SUPPORT = sys.maxunicode > 0xffff
+DATA_DIR = os.path.abspath(os.path.normpath(os.path.join(_TEST_DIR, os.pardir, 'data')))
+HAS_UCS4_SUPPORT = sys.maxunicode > 0xffff
 
 
 class DataFile(object):
@@ -66,11 +74,11 @@ class TestFunctionData(object):
         self.pytest_mode = pytest_mode or 'pytest' in self.args
         self.collections = []  # type: List[Any]
 
-        import test_yaml  # pylint: disable=import-outside-toplevel
-        self.collections.append(test_yaml)
+        import yaml_tests  # pylint: disable=import-outside-toplevel
+        self.collections.append(yaml_tests)
         if yaml.__with_libyaml__:  # type: ignore
-            import test_yaml_ext  # pylint: disable=import-outside-toplevel
-            self.collections.append(test_yaml_ext)
+            import yaml_tests_ext  # pylint: disable=import-outside-toplevel
+            self.collections.append(yaml_tests_ext)
         self.collections.append(globals())
 
         args = sys.argv[1:]  # type: List[str]
@@ -113,7 +121,7 @@ class TestFunctionData(object):
             for key in sorted(yaml.common.iterkeys(mapping)):
                 self._add_function(mapping[key])
 
-        for filename in self._find_test_filenames(_DATA_DIR):
+        for filename in self._find_test_filenames(DATA_DIR):
             file_data = DataFile(filename)
             self.test_filenames.append(file_data)
             self._extensions_to_filename.setdefault(file_data.extension, []).append(file_data)
@@ -200,9 +208,9 @@ class TestFunctionData(object):
             for group_name, group_permutations in yaml.common.iteritems(groups):
                 group_values = []  # type: List[str]
                 for arg_name in arg_names:
-                    permutation = group_permutations.get(arg_to_extension[arg_name], None)
-                    if permutation is not None:
-                        group_values.append(permutation.value)
+                    group_permutation = group_permutations.get(arg_to_extension[arg_name], None)
+                    if group_permutation is not None:
+                        group_values.append(group_permutation.value)
 
                 if len(group_values) == len(arg_names):
                     if len(group_values) == 1:
@@ -237,17 +245,20 @@ class TestFunctionData(object):
                     continue
                 if sys.version_info[0] >= 2 and base.endswith('-py3'):
                     continue
-                if not _HAS_UCS4_SUPPORT and base.find('-ucs4-') > -1:
+                if not HAS_UCS4_SUPPORT and base.find('-ucs4-') > -1:
                     continue
                 yield path
 
     def execute(self, function, filenames, verbose):
-        # type: (Any, List[str], bool) -> Tuple[Optional[str], List[str], str, Any]
+        # type: (Any, List[str], bool) -> Tuple[Optional[str], List[str], str, Optional[Any]]
         """Execute test function and pass in filenames as arguments."""
-        name = TestFunctionData._get_function_name(function)
+
+        function_name = TestFunctionData._get_function_name(function)
         if verbose:
             sys.stdout.write('='*75+'\n')
-            sys.stdout.write('%s(%s)...\n' % (name, ', '.join(filenames)))
+            sys.stdout.write('%s(%s)...\n' % (function_name, ', '.join(filenames)))
+
+        info = None  # type: Optional[Any]
         try:
             function(verbose=verbose, *filenames)
         except Exception as exc:
@@ -268,7 +279,7 @@ class TestFunctionData(object):
             if not verbose:
                 sys.stdout.write('.')
         sys.stdout.flush()
-        return (name, filenames, kind, info)
+        return function_name, filenames, kind, info
 
     @staticmethod
     def get_instance():

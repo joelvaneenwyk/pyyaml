@@ -7,11 +7,11 @@ import test_appliance
 
 def main(args=None):
     collections = []
-    import test_yaml
-    collections.append(test_yaml)
+    import yaml_tests
+    collections.append(yaml_tests)
     if yaml.__with_libyaml__:
-        import test_yaml_ext
-        collections.append(test_yaml_ext)
+        import yaml_tests_ext
+        collections.append(yaml_tests_ext)
     return test_appliance.run(collections, args)
 
 if __name__ == '__main__':
