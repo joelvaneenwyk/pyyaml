@@ -17,5 +17,8 @@ PyYAML*/
 _pycache_/*
 .package.lock
 .tox/
+.tmp/
+.mypy_cache/
+.pytest_cache/
 
 .DS_Store

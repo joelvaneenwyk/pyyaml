@@ -1,6 +1,98 @@
 {
-    "cSpell.words": ["CYTHON", "fixturenames", "Kirill", "LIBYAML", "PYMALLOC", "pyproject", "Simonov"],
+    //--------------------------
+    // Python
+    //--------------------------
+    "[python]": {
+        "editor.formatOnSave": false,
+        "editor.formatOnPaste": false,
+        "editor.defaultFormatter": "ms-python.python",
+        "editor.codeActionsOnSave": {
+            "source.organizeImports": true,
+            "python.sortImports": true
+        }
+    },
+    "isort.args": ["--settings-path=pyproject.toml"],
+    "python.languageServer": "Pylance",
+    "python.envFile": "${workspaceFolder}/.env",
+    "python.terminal.activateEnvironment": true,
+    "python.terminal.activateEnvInCurrentTerminal": true,
+    "python.terminal.launchArgs": [],
+    "python.formatting.provider": "black",
+    "python.formatting.autopep8Args": [
+        "--global-config",
+        "${workspaceFolder}/pyproject.toml",
+        "--experimental",
+        "--pep8-passes",
+        "2000",
+        "--max-line-length",
+        "130"
+    ],
+    "autoDocstring.docstringFormat": "google",
+    "python.formatting.blackArgs": ["-line-length", "130"],
+    "python.analysis.inlayHints.functionReturnTypes": true,
+    "python.analysis.inlayHints.variableTypes": true,
+    "python.analysis.extraPaths": ["./lib"],
+    "python.linting.enabled": true,
+    "python.linting.flake8Args": ["--config", "${workspaceFolder/setup.cfg"],
+    "python.linting.flake8Enabled": true,
+    "python.linting.mypyArgs": ["--no-pretty", "--config-file", "${workspaceFolder}/pyproject.toml"],
+    "python.linting.mypyEnabled": true,
+    "python.linting.pycodestyleArgs": ["--config=${workspaceFolder/setup.cfg"],
+    "python.linting.pycodestyleEnabled": false,
+    "python.linting.pydocstyleEnabled": false,
+    "python.linting.pylintEnabled": true,
+    "pylint.importStrategy": "fromEnvironment",
+    "pylint.path": ["python", "-B", "-m", "pylint"],
+    "pylint.args": ["--rcfile=${workspaceFolder}/pyproject.toml"],
+    "pylint.logLevel": "error",
+    "pylint.severity": {
+        "convention": "Warning",
+        "error": "Error",
+        "fatal": "Error",
+        "refactor": "Warning",
+        "warning": "Warning",
+        "info": "Warning"
+    },
+    "python.testing.unittestArgs": ["-s", "-p", "-c=${workspaceFolder}/pyproject.toml"],
+    "python.testing.pytestArgs": [
+        "--doctest-modules",
+        "--doctest-report",
+        "ndiff",
+        "--showlocals",
+        "--capture=tee-sys",
+        "--verbose",
+        "-c=${workspaceFolder}/pyproject.toml",
+        "-o",
+        "cache_dir=${workspaceFolder}/build/cache/pytest_vscode",
+        "--rootdir=${workspaceFolder}"
+    ],
     "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": true,
-    "python.analysis.extraPaths": ["./lib"]
+    "files.exclude": {
+        "**/.git": true,
+        "**/.svn": true,
+        "**/.hg": true,
+        "**/CVS": true,
+        "**/.DS_Store": true,
+        "**/Thumbs.db": true,
+        "**/*.pyc": true,
+        "**/__pycache__/**": true,
+        "**/.mypy_cache/**": true,
+        "**/.pytest_cache/**": true,
+        "**/.tmp/**": true,
+        "**/.tox/**": true
+    },
+    "cSpell.words": [
+        "basestring",
+        "CYTHON",
+        "Descr",
+        "fixturenames",
+        "Kirill",
+        "LIBYAML",
+        "PYMALLOC",
+        "pyproject",
+        "pyright",
+        "Simonov"
+    ],
+    "python.analysis.typeCheckingMode": "off"
 }
