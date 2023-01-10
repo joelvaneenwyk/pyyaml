@@ -597,7 +597,7 @@ get_function_defaults = operator.attrgetter(_func_defaults)
 get_function_globals = operator.attrgetter(_func_globals)
 
 
-if PY3:
+if sys.version_info[0] == 3:
     def iterkeys(d, **kw):
         return iter(d.keys(**kw))
 
