@@ -14,7 +14,7 @@ import traceback
 from pytest import fixture, Metafunc
 
 try:
-    from typing import List, Optional, Tuple, Any, Dict, Set, Generator
+    from typing import List, Optional, Tuple, Any, Dict, Generator, Union
 except ImportError:
     pass
 
@@ -103,7 +103,7 @@ class TestFunctionData(object):
         self._extensions_to_filename = {}  # type: Dict[str, List[DataFile]]
 
         self.test_filenames = []  # type: List[DataFile]
-        self.functions = {}
+        self.functions = {}  # type: Dict[str, Any]
 
         for collection in self.collections:
             if isinstance(collection, dict):
@@ -145,14 +145,36 @@ class TestFunctionData(object):
         if not function or (self.include_functions and function_name not in self.include_functions):
             return
 
+        extension_to_arg = {}  # type: Dict[str, str]
+        arg_to_extension = {}  # type: Dict[str, str]
+
+        exts = getattr(function, 'unittest', None) or []  # type: List[str]
+        skip_exts = getattr(function, 'skip', None) or []  # type: List[str]
+        extensions = set(self._extensions_to_filename.keys())
+
+        unmatched_args = list(arg_names)
+        for _iteration_index in range(2):
+            if len(extension_to_arg) == len(arg_names):
+                break
+
+            for ext in extensions:
+                if ext in extension_to_arg:
+                    continue
+
+                match = '{}_filename'.format(ext.strip('.'))
+                for arg_name in unmatched_args:
+                    if match == arg_name or (_iteration_index > 0 and len(unmatched_args) == 1):
+                        unmatched_args.remove(arg_name)
+                        arg_to_extension[arg_name] = ext
+                        extension_to_arg[ext] = arg_name
+                        break
+
         filenames = []  # type: List[str]
-        exts = getattr(function, 'unittest', None) or []
         if function_name not in self._function_mapping:
             for data_file in self.test_filenames:
                 if self.include_filenames and data_file.base not in self.include_filenames:
                     continue
 
-                skip_exts = getattr(function, 'skip', None) or []
                 for ext in exts:
                     if ext in exts and ext == data_file.extension and ext not in skip_exts:
                         filenames.append(data_file.filename)
@@ -164,41 +186,19 @@ class TestFunctionData(object):
             for x in filenames or []
         ]
         groups = {}  # type: Dict[str, Dict[str, Permutation]]
-        extensions = set()  # type: Set[str]
 
         for permutation in permutations:
             if permutation.base not in groups:
                 groups[permutation.base] = {}
 
-            groups[permutation.base][permutation.extension] = permutation
-            extensions.add(permutation.extension)
+            groups.setdefault(permutation.base, {})[permutation.extension] = permutation
 
         if groups:
-            extension_to_arg = {}
-            arg_to_extension = {}
-
-            unmatched_args = list(arg_names)
-            for _iteration_index in range(2):
-                if len(extension_to_arg) == len(arg_names):
-                    break
-
-                for ext in extensions:
-                    if ext in extension_to_arg:
-                        continue
-
-                    match = '{}_filename'.format(ext.strip('.'))
-                    for arg_name in unmatched_args:
-                        if match == arg_name or len(unmatched_args) == 1:
-                            unmatched_args.remove(arg_name)
-                            arg_to_extension[arg_name] = ext
-                            extension_to_arg[ext] = arg_name
-                            break
-
-            arg_value_tuples = []  # type: List[Tuple[str, ...]]
+            arg_value_tuples = []  # type: List[Union[str, Tuple[str, ...]]]
             arg_ids = []  # type: List[str]
 
-            for _group_name, group_permutations in yaml.common.iteritems(groups):
-                group_values = []
+            for group_name, group_permutations in yaml.common.iteritems(groups):
+                group_values = []  # type: List[str]
                 for arg_name in arg_names:
                     permutation = group_permutations.get(arg_to_extension[arg_name], None)
                     if permutation is not None:
@@ -209,7 +209,7 @@ class TestFunctionData(object):
                         arg_value_tuples.append(group_values[0])
                     else:
                         arg_value_tuples.append(tuple(group_values))
-                    arg_ids.append(_group_name)
+                    arg_ids.append(group_name)
 
             metafunc.parametrize(
                 ",".join(arg_names), arg_value_tuples, scope="function", ids=arg_ids)
@@ -221,7 +221,9 @@ class TestFunctionData(object):
         else:
             function_value = function
         function_name = TestFunctionData._get_function_name(function_value)
-        if function_name not in self.functions and (isinstance(function_value, types.FunctionType) or hasattr(function_value, 'unittest')):
+        if (function_name
+                and function_name not in self.functions
+                and (isinstance(function_value, types.FunctionType) or hasattr(function_value, 'unittest'))):
             self.functions[function_name] = function_value
         return self.functions.get(function_name, None) if function_name is not None else None
 
@@ -240,6 +242,8 @@ class TestFunctionData(object):
                 yield path
 
     def execute(self, function, filenames, verbose):
+        # type: (Any, List[str], bool) -> Tuple[Optional[str], List[str], str, Any]
+        """Execute test function and pass in filenames as arguments."""
         name = TestFunctionData._get_function_name(function)
         if verbose:
             sys.stdout.write('='*75+'\n')
@@ -268,6 +272,7 @@ class TestFunctionData(object):
 
     @staticmethod
     def get_instance():
+        """Return singleton instance of this class."""
         if TestFunctionData.instance is None:
             TestFunctionData.instance = TestFunctionData(pytest_mode=True)
         return TestFunctionData.instance
