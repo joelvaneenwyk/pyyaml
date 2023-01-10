@@ -126,55 +126,55 @@ class TestFunctionData(object):
             x for x in set(metafunc.fixturenames)
             if x not in {'request', 'data'}
         ]
-
         function_name = metafunc.definition.name
 
-        values = self._function_mapping.get(function_name, None)
-        permutations = [Permutation(function_name, x) for x in values]
+        permutations = [
+            Permutation(function_name, x)
+            for x in self._function_mapping.get(function_name, None) or []
+        ]
         groups = {}
-        types = set()
+        extensions = set()
 
         for permutation in permutations:
             if permutation.base not in groups:
                 groups[permutation.base] = {}
 
-            if permutation.extension not in groups[permutation.base]:
-                groups[permutation.base][permutation.extension] = []
+            groups[permutation.base][permutation.extension] = permutation
+            extensions.add(permutation.extension)
 
-            groups[permutation.base][permutation.extension].append(permutation)
-            types.add(permutation.extension)
+        extension_to_arg = {}
+        arg_to_extension = {}
 
-        bases = {}
-        base_matching = {}
-        match_mapping = {}
-
-        for ext in types:
+        for ext in extensions:
             match = '{}_filename'.format(ext.strip('.'))
-            remainder = [arg for arg in arg_names if arg not in list(match_mapping.keys())]
+            remainder = [arg for arg in arg_names if arg not in list(arg_to_extension.keys())]
             for arg_name in remainder:
                 if match == arg_name or len(remainder) == 1:
-                    match_mapping[arg_name] = match
-                    base_matching[ext] = arg_name
+                    arg_to_extension[arg_name] = ext
+                    extension_to_arg[ext] = arg_name
                     break
 
-        for _key, arg_values_updated in arg_values.items():
-            for value in arg_values_updated:
-                loc = os.path.basename(value)
-                base, ext = os.path.splitext(loc)
-                if base not in bases:
-                    bases[base] = {}
-                bases[base][ext] = value
-
-        if arg_values:
-            arg_names = list(arg_values.keys())
+        if groups:
+            arg_names = list(extension_to_arg.values())
             arg_value_tuples = []  # type: Tuple[str, ...]
 
-            for _base_key, base_mapping in bases.items():
-                if len(base_mapping) == len(arg_names):
-                    values = [base_mapping.get(match_mapping[name], None) for name in arg_names]
-                    arg_value_tuples.append(tuple(values))
+            for _group_name, group_permutations in groups.items():
+                group_values = []
+                for arg_name in arg_names:
+                    permutation = group_permutations.get(arg_to_extension[arg_name], None)
+                    if permutation is not None:
+                        group_values.append(permutation.value)
 
-            metafunc.parametrize(",".join(arg_names), arg_value_tuples, scope="function")
+                if len(group_values) == len(arg_names):
+                    if len(group_values) == 1:
+                        arg_value_tuples = group_values[0]
+                    else:
+                        arg_value_tuples.append(tuple(group_values))
+
+            metafunc.parametrize(
+                ",".join(arg_names),
+                arg_value_tuples,
+                scope="function")
 
     def _find_test_functions(self, collections):
         if not isinstance(collections, list):
