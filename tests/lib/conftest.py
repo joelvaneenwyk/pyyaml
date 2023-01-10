@@ -11,10 +11,10 @@ import traceback
 import pprint
 
 import pytest
-from pytest import fixture, FixtureRequest, Metafunc
+from pytest import fixture, Metafunc
 
 try:
-    from typing import List, Optional, Tuple, Dict
+    from typing import List, Optional, Tuple
 except ImportError:
     pass
 
@@ -24,7 +24,7 @@ _LIB_DIR = os.path.abspath(os.path.normpath(os.path.join(_TEST_DIR, os.pardir, o
 sys.path.insert(0, _LIB_DIR)
 sys.path.insert(0, _TEST_DIR)
 
-import yaml.common
+import yaml.common  # pylint: disable=wrong-import-position
 
 
 _DATA_DIR = os.path.abspath(os.path.normpath(os.path.join(_TEST_DIR, os.pardir, 'data')))
@@ -32,6 +32,8 @@ _HAS_UCS4_SUPPORT = sys.maxunicode > 0xffff
 
 
 class Permutation(object):
+    """Represents single permutation for a given function."""
+
     def __init__(self, function, value):
         self.function = function
         self.value = value
@@ -124,7 +126,7 @@ class TestFunctionData(object):
 
         arg_names = [
             x for x in set(metafunc.fixturenames)
-            if x not in {'request', 'data'}
+            if x not in {'request', 'data', 'verbose'}
         ]
         function_name = metafunc.definition.name
 
@@ -158,7 +160,7 @@ class TestFunctionData(object):
             arg_names = list(extension_to_arg.values())
             arg_value_tuples = []  # type: Tuple[str, ...]
 
-            for _group_name, group_permutations in groups.items():
+            for _group_name, group_permutations in yaml.common.iteritems(groups):
                 group_values = []
                 for arg_name in arg_names:
                     permutation = group_permutations.get(arg_to_extension[arg_name], None)
@@ -167,7 +169,7 @@ class TestFunctionData(object):
 
                 if len(group_values) == len(arg_names):
                     if len(group_values) == 1:
-                        arg_value_tuples = group_values[0]
+                        arg_value_tuples.append(group_values[0])
                     else:
                         arg_value_tuples.append(tuple(group_values))
 
@@ -235,65 +237,6 @@ class TestFunctionData(object):
         sys.stdout.flush()
         return (name, filenames, kind, info)
 
-    def display(self, results, verbose):
-        if results and not verbose:
-            sys.stdout.write('\n')
-        total = len(results)
-        failures = 0
-        errors = 0
-        for name, filenames, kind, info in results:
-            if kind == 'SUCCESS':
-                continue
-            if kind == 'FAILURE':
-                failures += 1
-            if kind == 'ERROR':
-                errors += 1
-            sys.stdout.write('='*75+'\n')
-            sys.stdout.write('%s(%s): %s\n' % (name, ', '.join(filenames), kind))
-            if kind == 'ERROR':
-                traceback.print_exception(file=sys.stdout, *info)
-            else:
-                sys.stdout.write('Traceback (most recent call last):\n')
-                traceback.print_tb(info[2], file=sys.stdout)
-                sys.stdout.write('%s: see below\n' % info[0].__name__)
-                sys.stdout.write('~'*75+'\n')
-                for arg in info[1].args:
-                    pprint.pprint(arg, stream=sys.stdout)
-            for filename in filenames:
-                sys.stdout.write('-'*75+'\n')
-                sys.stdout.write('%s:\n' % filename)
-                data = open(filename, 'rb').read()
-                sys.stdout.write(data)
-                if data and data[-1] != '\n':
-                    sys.stdout.write('\n')
-        sys.stdout.write('='*75+'\n')
-        sys.stdout.write('TESTS: %s\n' % total)
-        if failures:
-            sys.stdout.write('FAILURES: %s\n' % failures)
-        if errors:
-            sys.stdout.write('ERRORS: %s\n' % errors)
-        return not (failures or errors)
-
-    def get_files(self, function, fixture_name):
-        """Return filename for this test."""
-        filenames = self._function_mapping.get(function, None)
-        if filenames is not None:
-            parts = ['.{}'.format(name) for name in set(fixture_name.split('_'))]
-            output_filenames = []
-            for part in parts:
-                output_filenames.extend([filename for filename in filenames if filename.endswith(part)])
-            if output_filenames:
-                filenames = output_filenames
-        return filenames
-
-    def get_file(self, function, fixture_name):
-        """Return filename for this test."""
-        files = self.get_files(function, fixture_name)
-        result = files[0] if files else None
-        if result is None:
-            pytest.skip('No test data found for %s' % function)
-        return result
-
     @staticmethod
     def get_instance():
         if TestFunctionData.instance is None:
@@ -311,101 +254,3 @@ def pytest_generate_tests(metafunc):
 def fixture_verbose():
     """Returns the data filename associated with this test."""
     return TestFunctionData.get_instance().verbose
-
-
-# @fixture(scope="function", name="canonical_filename")
-# def fixture_canonical_filename(request):
-#     # type: (FixtureRequest) -> str
-#     """Returns the data filename associated with this test."""
-#     return TestFunctionData.get_instance().get_file(request.node.name, request.fixturename)
-#
-#
-# @fixture(scope="function", name="code_filename")
-# def fixture_code_filename(request):
-#     # type: (FixtureRequest) -> str
-#     """Returns the data filename associated with this test."""
-#     return TestFunctionData.get_instance().get_file(request.node.name, request.fixturename)
-#
-#
-# @fixture(scope="function", name="data_filename")
-# def fixture_data_filename(request):
-#     # type: (FixtureRequest) -> str
-#     """Returns the data filename associated with this test."""
-#     return TestFunctionData.get_instance().get_file(request.node.name, request.fixturename)
-#
-#
-# @fixture(scope="function", name="detect_filename")
-# def fixture_detect_filename(request):
-#     # type: (FixtureRequest) -> str
-#     """Returns the data filename associated with this test."""
-#     return TestFunctionData.get_instance().get_file(request.node.name, request.fixturename)
-#
-#
-# @fixture(scope="function", name="error_filename")
-# def fixture_error_filename(request):
-#     # type: (FixtureRequest) -> str
-#     """Returns the data filename associated with this test."""
-#     return TestFunctionData.get_instance().get_file(request.node.name, request.fixturename)
-#
-#
-# @fixture(scope="function", name="events_filename")
-# def fixture_events_filename(request):
-#     # type: (FixtureRequest) -> str
-#     """Returns the data filename associated with this test."""
-#     return TestFunctionData.get_instance().get_file(request.node.name, request.fixturename)
-#
-#
-# @fixture(scope="function", name="input_filename")
-# def fixture_input_filename(request):
-#     # type: (FixtureRequest) -> str
-#     """Returns the data filename associated with this test."""
-#     return TestFunctionData.get_instance().get_file(request.node.name, request.fixturename)
-#
-#
-# @fixture(scope="function", name="marks_filename")
-# def fixture_marks_filename(request):
-#     # type: (FixtureRequest) -> str
-#     """Returns the data filename associated with this test."""
-#     return TestFunctionData.get_instance().get_file(request.node.name, request.fixturename)
-#
-#
-# @fixture(scope="function", name="path_filename")
-# def fixture_path_filename(request):
-#     # type: (FixtureRequest) -> str
-#     """Returns the data filename associated with this test."""
-#     return TestFunctionData.get_instance().get_file(request.node.name, request.fixturename)
-#
-#
-# @fixture(scope="function", name="recursive_filename")
-# def fixture_recursive_filename(request):
-#     # type: (FixtureRequest) -> str
-#     """Returns the data filename associated with this test."""
-#     return TestFunctionData.get_instance().get_file(request.node.name, request.fixturename)
-#
-#
-# @fixture(scope="function", name="sorted_filename")
-# def fixture_sorted_filename(request):
-#     # type: (FixtureRequest) -> str
-#     """Returns the data filename associated with this test."""
-#     return TestFunctionData.get_instance().get_file(request.node.name, request.fixturename)
-#
-#
-# @fixture(scope="function", name="structure_filename")
-# def fixture_structure_filename(request):
-#     # type: (FixtureRequest) -> str
-#     """Returns the data filename associated with this test."""
-#     return TestFunctionData.get_instance().get_file(request.node.name, request.fixturename)
-#
-#
-# @fixture(scope="function", name="tokens_filename")
-# def fixture_tokens_filename(request):
-#     # type: (FixtureRequest) -> str
-#     """Returns the data filename associated with this test."""
-#     return TestFunctionData.get_instance().get_file(request.node.name, request.fixturename)
-#
-#
-# @fixture(scope="function", name="unicode_filename")
-# def fixture_unicode_filename(request):
-#     # type: (FixtureRequest) -> str
-#     """Returns the data filename associated with this test."""
-#     return TestFunctionData.get_instance().get_file(request.node.name, request.fixturename)
