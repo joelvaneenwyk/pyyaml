@@ -14,7 +14,7 @@ import pytest
 from pytest import fixture, FixtureRequest, Metafunc
 
 try:
-    from typing import List, Optional
+    from typing import List, Optional, Tuple, Dict
 except ImportError:
     pass
 
@@ -29,6 +29,14 @@ import yaml.common
 
 _DATA_DIR = os.path.abspath(os.path.normpath(os.path.join(_TEST_DIR, os.pardir, 'data')))
 _HAS_UCS4_SUPPORT = sys.maxunicode > 0xffff
+
+
+class Permutation(object):
+    def __init__(self, function, value):
+        self.function = function
+        self.value = value
+        self.name = os.path.basename(value)
+        self.base, self.extension = os.path.splitext(self.name)
 
 
 class TestFunctionData(object):
@@ -84,7 +92,7 @@ class TestFunctionData(object):
         self._function_mapping = {}
 
         for function in self.test_functions:
-            if yaml.common.PY3:
+            if sys.version_info[0] >= 3:
                 name = function.__name__
             else:
                 name = function.func_name
@@ -93,6 +101,7 @@ class TestFunctionData(object):
 
             if self.include_functions and name not in self.include_functions:
                 continue
+
             if function.unittest:
                 for base, exts in self.test_filenames:
                     if self.include_filenames and base not in self.include_filenames:
@@ -106,8 +115,66 @@ class TestFunctionData(object):
                         for skip_ext in skip_exts:
                             if skip_ext in exts:
                                 break
+                        else:
+                            self._function_mapping[name] = filenames
 
-            self._function_mapping[name] = filenames
+
+    def parameterize(self, metafunc):
+        """Parameterize the test function."""
+
+        arg_names = [
+            x for x in set(metafunc.fixturenames)
+            if x not in {'request', 'data'}
+        ]
+
+        function_name = metafunc.definition.name
+
+        values = self._function_mapping.get(function_name, None)
+        permutations = [Permutation(function_name, x) for x in values]
+        groups = {}
+        types = set()
+
+        for permutation in permutations:
+            if permutation.base not in groups:
+                groups[permutation.base] = {}
+
+            if permutation.extension not in groups[permutation.base]:
+                groups[permutation.base][permutation.extension] = []
+
+            groups[permutation.base][permutation.extension].append(permutation)
+            types.add(permutation.extension)
+
+        bases = {}
+        base_matching = {}
+        match_mapping = {}
+
+        for ext in types:
+            match = '{}_filename'.format(ext.strip('.'))
+            remainder = [arg for arg in arg_names if arg not in list(match_mapping.keys())]
+            for arg_name in remainder:
+                if match == arg_name or len(remainder) == 1:
+                    match_mapping[arg_name] = match
+                    base_matching[ext] = arg_name
+                    break
+
+        for _key, arg_values_updated in arg_values.items():
+            for value in arg_values_updated:
+                loc = os.path.basename(value)
+                base, ext = os.path.splitext(loc)
+                if base not in bases:
+                    bases[base] = {}
+                bases[base][ext] = value
+
+        if arg_values:
+            arg_names = list(arg_values.keys())
+            arg_value_tuples = []  # type: Tuple[str, ...]
+
+            for _base_key, base_mapping in bases.items():
+                if len(base_mapping) == len(arg_names):
+                    values = [base_mapping.get(match_mapping[name], None) for name in arg_names]
+                    arg_value_tuples.append(tuple(values))
+
+            metafunc.parametrize(",".join(arg_names), arg_value_tuples, scope="function")
 
     def _find_test_functions(self, collections):
         if not isinstance(collections, list):
@@ -236,10 +303,8 @@ class TestFunctionData(object):
 
 def pytest_generate_tests(metafunc):
     # type: (Metafunc) -> None
-    for fixture_name in set(metafunc.fixturenames):
-        filenames = TestFunctionData.get_instance().get_files(metafunc.definition.name, fixture_name)
-        if fixture_name not in {'request', 'data'} and filenames:
-            metafunc.parametrize(fixture_name, filenames)
+    """Parameterize given function against all permutations."""
+    TestFunctionData.get_instance().parameterize(metafunc)
 
 
 @fixture(scope="function", name="verbose")
