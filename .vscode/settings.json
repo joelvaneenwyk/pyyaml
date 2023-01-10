@@ -1,5 +1,6 @@
 {
-    "cSpell.words": ["CYTHON", "Kirill", "LIBYAML", "pyproject", "Simonov", "PYMALLOC"],
+    "cSpell.words": ["CYTHON", "fixturenames", "Kirill", "LIBYAML", "PYMALLOC", "pyproject", "Simonov"],
     "python.testing.unittestEnabled": false,
-    "python.testing.pytestEnabled": true
+    "python.testing.pytestEnabled": true,
+    "python.analysis.extraPaths": ["./lib"]
 }

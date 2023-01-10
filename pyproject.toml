@@ -6,6 +6,14 @@ build-backend = "setuptools.build_meta"
 [tool.pylint.main]
 ################################################
 
+init-hook = """
+import sys, os;
+from pylint.config import find_pylintrc;
+cwd_path = os.path.abspath(os.path.dirname(find_pylintrc() or (os.getcwd() + '/')));
+sys.path.insert(0, cwd_path)
+"""
+
+
 ################################################
 [tool.pylint.exceptions]
 ################################################
