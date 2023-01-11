@@ -15,7 +15,8 @@ from .error import YAMLError
 from .events import *
 
 if common.PY3:
-    import io, codecs
+    import codecs
+    import io
 
 has_ucs4 = sys.maxunicode > 0xffff
 

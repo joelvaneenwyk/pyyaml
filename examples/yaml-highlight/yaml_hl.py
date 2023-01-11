@@ -1,6 +1,13 @@
 #!/usr/bin/python
 
-import yaml, yaml.common, codecs, sys, os.path, optparse
+import codecs
+import optparse
+import os.path
+import sys
+
+import yaml
+import yaml.common
+
 
 class Style:
 

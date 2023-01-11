@@ -1,11 +1,12 @@
 
 __all__ = ['BaseResolver', 'Resolver']
 
+import re
+
 from . import common
 from .error import *
 from .nodes import *
 
-import re
 
 class ResolverError(YAMLError):
     pass
@@ -35,6 +36,7 @@ class BaseResolver(object):
             cls.yaml_implicit_resolvers.setdefault(ch, []).append((tag, regexp))
     add_implicit_resolver = classmethod(add_implicit_resolver)
 
+    @classmethod
     def add_path_resolver(cls, tag, path, kind=None):
         # Note: `add_path_resolver` is experimental.  The API could be changed.
         # `new_path` is a pattern that is matched against the path from the
@@ -87,7 +89,6 @@ class BaseResolver(object):
                 and kind is not None:
             raise ResolverError("Invalid node kind: %s" % kind)
         cls.yaml_path_resolvers[tuple(new_path), kind] = tag
-    add_path_resolver = classmethod(add_path_resolver)
 
     def descend_resolver(self, current_node, current_index):
         if not self.yaml_path_resolvers:

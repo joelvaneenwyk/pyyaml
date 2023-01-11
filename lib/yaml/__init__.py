@@ -1,13 +1,10 @@
 from . import common
-
-from .error import *
-
-from .tokens import *
-from .events import *
-from .nodes import *
-
-from .loader import *
 from .dumper import *
+from .error import *
+from .events import *
+from .loader import *
+from .nodes import *
+from .tokens import *
 
 __version__ = '5.4.1'
 try:

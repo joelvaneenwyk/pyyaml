@@ -2,16 +2,22 @@
 __all__ = ['BaseRepresenter', 'SafeRepresenter', 'Representer',
     'RepresenterError']
 
+import datetime
+
 from . import common
 from .error import *
 from .nodes import *
 
-import datetime
-
 if common.PY2:
-    import copy_reg, types
+    import types
+
+    import copy_reg
 else:
-    import datetime, copyreg, types, base64, collections
+    import base64
+    import collections
+    import copyreg
+    import datetime
+    import types
 
 
 class RepresenterError(YAMLError):

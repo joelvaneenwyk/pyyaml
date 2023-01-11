@@ -8,12 +8,12 @@ __all__ = [
     'ConstructorError'
 ]
 
-import datetime
 import base64
 import binascii
+import datetime
 import re
-import types
 import sys
+import types
 
 from . import common
 from .error import *

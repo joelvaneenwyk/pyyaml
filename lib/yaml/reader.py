@@ -17,10 +17,12 @@
 
 __all__ = ['Reader', 'ReaderError']
 
-from . import common
-from .error import YAMLError, Mark
+import codecs
+import re
+import sys
 
-import codecs, re, sys
+from . import common
+from .error import Mark, YAMLError
 
 if common.PY3:
     import io
