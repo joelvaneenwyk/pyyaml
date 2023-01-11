@@ -381,6 +381,8 @@ jobs:
               run: exit 1
               if: matrix.spec != '2.7' && steps.cached_libyaml.outputs.cache-hit != 'true'
 
+            # This causes a warning in Python 2.7 due to open issue:
+            #   - https://github.com/actions/setup-python/issues/575
             - name: Install python ${{ matrix.spec }}
               uses: actions/setup-python@v4
               with:
