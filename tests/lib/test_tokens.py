@@ -1,5 +1,6 @@
-import yaml
 import pprint
+
+import yaml
 
 # Tokens mnemonic:
 # directive:            %

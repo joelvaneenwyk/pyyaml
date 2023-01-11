@@ -1,12 +1,14 @@
-import yaml
+import datetime
 import pprint
 
-import datetime
+import yaml
+import yaml.common
+import yaml.tokens
+
 try:
     set
 except NameError:
     from sets import Set as set
-import yaml.tokens, yaml.common
 
 value = None
 
@@ -327,7 +329,9 @@ def test_timezone_copy(verbose=False):
 test_timezone_copy.unittest = []
 
 if __name__ == '__main__':
-    import sys, test_constructor
+    import sys
+
+    import test_constructor
     sys.modules['test_constructor'] = sys.modules['__main__']
     import test_appliance
     test_appliance.run(globals())

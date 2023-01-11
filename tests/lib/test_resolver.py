@@ -1,5 +1,7 @@
-import yaml
 import pprint
+
+import yaml
+
 
 def test_implicit_resolver(data_filename, detect_filename, verbose=False):
     correct_tag = None

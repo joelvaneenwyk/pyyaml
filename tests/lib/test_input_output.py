@@ -1,5 +1,11 @@
-import yaml, yaml.common
-import codecs, tempfile, os, os.path
+import codecs
+import os
+import os.path
+import tempfile
+
+import yaml
+import yaml.common
+
 
 def _unicode_open(file, encoding, errors='strict'):
     if yaml.common.PY2:

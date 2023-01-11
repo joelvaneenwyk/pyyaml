@@ -1,6 +1,6 @@
-import yaml
-
 import canonical
+
+import yaml
 
 
 def test_canonical_scanner(canonical_filename, verbose=False):

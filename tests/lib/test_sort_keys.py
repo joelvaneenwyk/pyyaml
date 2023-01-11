@@ -1,6 +1,5 @@
 import yaml
-import pprint
-import sys
+
 
 def test_sort_keys(input_filename, sorted_filename, verbose=False):
     input = open(input_filename, 'rb').read().decode('utf-8')
@@ -16,9 +15,6 @@ def test_sort_keys(input_filename, sorted_filename, verbose=False):
         print(data)
 
     assert dump_sorted == sorted
-
-
-
 
 test_sort_keys.unittest = ['.sort', '.sorted']
 

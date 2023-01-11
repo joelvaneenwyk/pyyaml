@@ -7,5 +7,6 @@ if __name__ == '__main__':
     sys.path.insert(0, build_lib)
     sys.path.insert(0, build_lib_ext)
     import test_appliance
+
     import yaml_tests_ext
     test_appliance.run(yaml_tests_ext)

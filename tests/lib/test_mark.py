@@ -1,4 +1,6 @@
-import yaml, yaml.common
+import yaml
+import yaml.common
+
 
 def test_marks(marks_filename, verbose=False):
     with open(marks_filename, 'r') as file:

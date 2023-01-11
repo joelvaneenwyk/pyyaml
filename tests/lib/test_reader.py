@@ -1,5 +1,8 @@
-import yaml.reader, yaml.common
 import codecs
+
+import yaml.common
+import yaml.reader
+
 
 def _run_reader(data, verbose):
     try:

@@ -1,6 +1,5 @@
 import yaml
-import pprint
-import sys
+
 
 def _load_code(expression):
     return eval(expression)

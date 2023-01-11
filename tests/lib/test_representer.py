@@ -1,6 +1,9 @@
-import yaml
-import test_constructor
 import pprint
+
+import yaml
+
+import test_constructor
+
 
 def test_representer_types(code_filename, verbose=False):
     test_constructor._make_objects()

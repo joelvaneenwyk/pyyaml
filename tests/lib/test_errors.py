@@ -1,4 +1,7 @@
-import yaml, test_emitter
+import yaml
+
+import test_emitter
+
 
 def test_loader_error(error_filename, verbose=False):
     try:

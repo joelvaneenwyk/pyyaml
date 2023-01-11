@@ -1,5 +1,6 @@
 import yaml
 
+
 def _compare_events(events1, events2):
     assert len(events1) == len(events2), (events1, events2)
     for event1, event2 in zip(events1, events2):
