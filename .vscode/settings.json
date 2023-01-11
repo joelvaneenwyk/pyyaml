@@ -150,14 +150,17 @@
     },
     "cSpell.words": [
         "basestring",
+        "cyaml",
         "CYTHON",
         "Descr",
         "fixturenames",
         "Kirill",
+        "libera",
         "LIBYAML",
         "PYMALLOC",
         "pyproject",
         "pyright",
+        "pyyaml",
         "redef",
         "representer",
         "Simonov"
