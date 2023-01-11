@@ -323,7 +323,7 @@ jobs:
                   popd
                   mkdir libyaml/build
                   pushd libyaml/build
-                  cmake.exe -G "Visual Studio 15 2017" -A ${{ matrix.arch }} -DYAML_STATIC_LIB_NAME=yaml ..
+                  cmake.exe -G "Visual Studio 17 2022" -A ${{ matrix.arch }} -DYAML_STATIC_LIB_NAME=yaml ..
                   cmake.exe --build . --config Release
                   popd
 
@@ -334,28 +334,28 @@ jobs:
         strategy:
             matrix:
                 include:
-                    - platform: windows-2016
+                    - platform: windows-2022
                       build_arch: x64
                       python_arch: x64
                       spec: 2.7
-                    - platform: windows-2016
+                    - platform: windows-2022
                       build_arch: x64
                       python_arch: x64
                       spec: 3.6
-                    - platform: windows-2016
+                    - platform: windows-2022
                       build_arch: x64
                       python_arch: x64
                       spec: "3.10"
 
-                    - platform: windows-2016
+                    - platform: windows-2022
                       build_arch: win32
                       python_arch: x86
                       spec: 2.7
-                    - platform: windows-2016
+                    - platform: windows-2022
                       build_arch: win32
                       python_arch: x86
                       spec: 3.6
-                    - platform: windows-2016
+                    - platform: windows-2022
                       build_arch: win32
                       python_arch: x86
                       spec: "3.10"
