@@ -123,8 +123,11 @@ class MovedModule(_LazyDescr):
         return _import_module(self.mod)
 
     def __getattr__(self, attr):
-        _module = self._resolve()
-        value = getattr(_module, attr)
+        try:
+            _module = self._resolve()
+            value = getattr(_module, attr)
+        except ModuleNotFoundError:
+            value =None
         setattr(self, attr, value)
         return value
 

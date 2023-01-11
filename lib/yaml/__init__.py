@@ -12,7 +12,7 @@ __version__ = '5.4.1'
 try:
     from .cyaml import *
     __with_libyaml__ = True
-except ImportError:
+except (ImportError, AttributeError):
     __with_libyaml__ = False
 
 
