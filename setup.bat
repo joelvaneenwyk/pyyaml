@@ -52,3 +52,8 @@ exit /b 0
         scoop install pypy3
     )
 exit /b
+
+pyenv local ^
+    3.9.9 3.10.9 3.11.1 ^
+    2.6.6 2.7.18 ^
+    3.12.0a3 3.6.8 3.7.0-win32 3.8.10

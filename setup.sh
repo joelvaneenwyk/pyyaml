@@ -30,10 +30,16 @@ if [ -d "${HOME:-}/.pyenv" ]; then
     export PYENV_ROOT="${HOME:-}/.pyenv"
 
     if ! pyenv --version >/dev/null 2>&1; then
-        export PATH="$PYENV_ROOT/bin:$PATH"
+        export PATH="$PYENV_ROOT/bin:$PYENV_ROOT/versions:$PATH"
         eval "$(pyenv init -)"
     fi
 fi
+
+pyenv local \
+    3.9.16 3.10.9 3.11.1 3.12-dev \
+    3.6.15 3.7.16 \
+    2.6.9 2.7.18 \
+    ironpython-2.7.7 jython-2.7.2 pypy2.7-7.3.11 pypy3.9-7.3.11 pyston-2.3.5 stackless-3.7.5
 
 if [ "${1:-}" = "install" ]; then
     install
