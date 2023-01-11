@@ -260,7 +260,7 @@ class TestCommand(Command):
         sys.path.insert(0, 'tests/lib')
         options = []
         import run_all_tests  # pylint: disable=import-error
-        if not run_all_tests.main(options):
+        if run_all_tests.main(options) != 0:
             raise DistutilsError("Tests failed")
 
 
