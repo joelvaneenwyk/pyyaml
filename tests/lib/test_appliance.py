@@ -164,10 +164,6 @@ class InternalTestFunctions(object):
 
         unit_test_extensions = getattr(function, 'unittest', None) or []  # type: List[str]
         skip_exts = getattr(function, 'skip', None) or []  # type: List[str]
-        all_extensions = list(set(self._extensions_to_filename.keys()))
-        unknown_extensions = set(unit_test_extensions).difference(set(unit_test_extensions).intersection(all_extensions))
-        if unknown_extensions:
-            raise Exception('Unknown extensions: {}'.format(unknown_extensions))
 
         filenames = []  # type: List[str]
         if function_name not in self._function_mapping:
@@ -181,11 +177,17 @@ class InternalTestFunctions(object):
 
             self._function_mapping[function_name] = filenames
 
+        file_extensions = {os.path.splitext(x)[1].lower() for x in filenames}
+        all_extensions = list(set(self._extensions_to_filename.keys()))
+        unknown_extensions = set(unit_test_extensions).difference(set(unit_test_extensions + list(file_extensions)).intersection(all_extensions))
+        if unknown_extensions:
+            raise Exception('Unknown extensions: {}'.format(unknown_extensions))
+
         def _normalize(input):
             # type: (str) -> str
             return input.replace('-', '_').replace('_filename', '').strip('.').lower()
 
-        extension_matches = unit_test_extensions or all_extensions
+        extension_matches = file_extensions or unit_test_extensions or all_extensions
         possibilities = {
             _normalize(x): x
             for x in extension_matches
@@ -195,9 +197,9 @@ class InternalTestFunctions(object):
         _iteration_index = 0
         while (len(extension_to_arg) != len(arg_names)
                     and unmatched_args
-                    and _iteration_index < 2):
+                    and _iteration_index < 10):
+            arg_name = unmatched_args[_iteration_index % len(unmatched_args)]
             _iteration_index += 1
-            arg_name = unmatched_args[0]
 
             matches = difflib.get_close_matches(
                 _normalize(arg_name),
