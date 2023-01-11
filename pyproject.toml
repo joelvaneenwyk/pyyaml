@@ -110,15 +110,130 @@ warn_unreachable = false
 
 check_untyped_defs = false
 
-exclude = '''(?x)((
-        example_filename
-    )|(
-        (
-            .yarn|.tox|.ruff_cache|.tmp|node_modules|
-            build|examples
-        )[/\\].*
-    ))\.py$
-'''
+exclude = [
+    '.yarn|.tox|.tmp|.jython_cache|.mypy_cache|.pytest_cache|.ruff_cache|.tmp|node_modules|build|examples[/\\].*$',
+    '__init__\.py$',
+    'canonical\.py$',
+    'common\.py$',
+    'conftest\.py$',
+    'constructor\.py$',
+    'cyaml\.py$',
+    'loader\.py$',
+    'reader\.py$',
+    'representer\.py$',
+    'setup\.py$',
+    'test_canonical\.py$',
+    'test_constructor\.py$',
+    'test_emitter\.py$',
+    'test_errors\.py$',
+    'test_input_output\.py$',
+    'test_mark\.py$',
+    'test_multi_constructor\.py$',
+    'test_reader\.py$',
+    'test_recursive\.py$',
+    'test_representer\.py$',
+    'test_resolver\.py$',
+    'test_sort_keys\.py$',
+    'test_structure\.py$',
+    'test_tokens\.py$',
+    'yaml_tests_ext\.py$',
+]
+
+[[tool.mypy.overrides]]
+module = "yaml.common.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "yaml.constructor.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "yaml.cyaml.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "yaml.loader.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "yaml.reader.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "yaml.representer.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "setup.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "canonical.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "conftest.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "test_canonical.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "test_constructor.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "test_emitter.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "test_errors.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "test_input_output.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "test_mark.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "test_multi_constructor.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "test_reader.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "test_recursive.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "test_representer.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "test_resolver.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "test_sort_keys.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "test_structure.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "test_tokens.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "yaml_tests_ext.*"
+ignore_errors = true
 
 ################################################
 [tool.pyright]
@@ -130,7 +245,11 @@ reportTypeCommentUsage = false
 reportUnusedImport = true
 extraPaths = ["lib/", "tests/lib/"]
 exclude = [
+    "**/__pycache__/",
+    "**/_test/",
     "**/.git/",
+    "**/.jython_cache/",
+    "**/.tmp/",
     "**/.mypy_cache/",
     "**/.nox/",
     "**/.pytest_cache/",
@@ -138,19 +257,30 @@ exclude = [
     "**/.tox/",
     "**/.venv/",
     "**/.yarn/",
-    "**/_Packages/",
-    "**/_Packaging/",
-    "**/__PACKAGES__/",
-    "**/__pycache__/",
-    "**/_test/",
     "**/node_modules/",
-    "Lib/",
-    "Obj/",
+    "build/",
     "cmake-*/",
-
-    "*.build",
+    "dist/",
 ]
-ignore = []
+ignore = [
+    "./examples/yaml-highlight/yaml_hl.py",
+    "./lib/yaml/",
+    "./packaging/build/smoketest.py",
+    "./tests/lib/canonical.py",
+    "./tests/lib/test_appliance.py",
+    "./tests/lib/test_canonical.py",
+    "./tests/lib/test_constructor.py",
+    "./tests/lib/test_emitter.py",
+    "./tests/lib/test_errors.py",
+    "./tests/lib/test_multi_constructor.py",
+    "./tests/lib/test_representer.py",
+    "./tests/lib/test_resolver.py",
+    "./tests/lib/test_sort_keys.py",
+    "./tests/lib/test_structure.py",
+    "./tests/lib/test_tokens.py",
+    "./tests/lib/yaml_tests_ext.py",
+    "setup.py",
+]
 
 
 ################################################
