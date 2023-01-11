@@ -26,6 +26,8 @@
 
 __all__ = ['Scanner', 'ScannerError']
 
+import sys
+
 from . import common
 from .error import MarkedYAMLError
 from .tokens import *
@@ -1407,13 +1409,13 @@ class Scanner(object):
                     raise ScannerError("while scanning a %s" % name, start_mark,
                             "expected URI escape sequence of 2 hexdecimal numbers, but found %r" %
                                 (self.peek(k).encode('utf-8')), self.get_mark())
-            if common.PY2:
+            if sys.version_info[0] == 2:
                 codes.append(chr(int(self.prefix(2), 16)))
             else:
                 codes.append(int(self.prefix(2), 16))
             self.forward(2)
         try:
-            if common.PY2:
+            if sys.version_info[0] == 2:
                 value = common.text_type(''.join(codes), 'utf-8')
             else:
                 value = bytes(codes).decode('utf-8')

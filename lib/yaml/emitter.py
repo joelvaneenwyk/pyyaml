@@ -617,7 +617,7 @@ class Emitter(object):
                 start = end = end+1
                 data = ch.encode('utf-8')
                 for ch in data:
-                    chunks.append(u'%%%02X' % ord(ch) if common.PY2 else ch)
+                    chunks.append(u'%%%02X' % ord(ch) if sys.version_info[0] == 2 else ch)
         if start < end:
             chunks.append(suffix[start:end])
         suffix_text = u''.join(chunks)
@@ -823,7 +823,7 @@ class Emitter(object):
         self.stream.write(self.encode(data))
 
     def encode(self, data):
-        if common.PY2:
+        if sys.version_info[0] == 2:
             if self.encoding:
                 data = data.encode(self.encoding)
             elif isinstance(self.stream, common.BytesIO):
@@ -834,7 +834,7 @@ class Emitter(object):
                         isinstance(self.stream, common.BytesIO)
                         or (not isinstance(self.stream, io.TextIOBase)) and 'b' in getattr(self.stream, 'mode', '')):
                     self._stream_type = common.binary_type
-                elif common.PY2 and not getattr(self.stream, 'encoding', None) and (
+                elif sys.version_info[0] == 2 and not getattr(self.stream, 'encoding', None) and (
                         isinstance(getattr(self.stream, 'buf', None), common.binary_type)
                         or 'b' in getattr(self.stream, 'mode', '')):
                     self._stream_type = common.binary_type

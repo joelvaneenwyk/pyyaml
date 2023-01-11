@@ -1,5 +1,6 @@
 import datetime
 import pprint
+import sys
 
 import yaml
 import yaml.common
@@ -63,16 +64,19 @@ def _make_objects():
         yaml_loader = MyLoader
         yaml_dumper = MyDumper
         yaml_tag = "!tag2"
+
+        @classmethod
         def from_yaml(cls, constructor, node):
             x = constructor.construct_yaml_int(node)
             return cls(x=x)
-        from_yaml = classmethod(from_yaml)
+
+        @classmethod
         def to_yaml(cls, representer, native):
             return representer.represent_scalar(cls.yaml_tag, str(native.x))
-        to_yaml = classmethod(to_yaml)
 
     class MyTestClass3(MyTestClass2):
         yaml_tag = "!tag3"
+        @classmethod
         def from_yaml(cls, constructor, node):
             mapping = constructor.construct_mapping(node)
             if '=' in mapping:
@@ -80,10 +84,10 @@ def _make_objects():
                 del mapping['=']
                 mapping['x'] = x
             return cls(**mapping)
-        from_yaml = classmethod(from_yaml)
+
+        @classmethod
         def to_yaml(cls, representer, native):
             return representer.represent_mapping(cls.yaml_tag, native.__dict__)
-        to_yaml = classmethod(to_yaml)
 
     class YAMLObject1(yaml.YAMLObject):
         yaml_loader = MyLoader
@@ -162,7 +166,7 @@ def _make_objects():
         def __setstate__(self, state):
             self.foo, self.bar, self.baz = state
 
-    if yaml.common.PY2:
+    if sys.version_info[0] == 2:
         class InitArgs(AnInstance):
             def __getinitargs__(self):
                 return (self.foo, self.bar, self.baz)
@@ -191,7 +195,7 @@ def _make_objects():
         def __setstate__(self, state):
             self.baz = state
 
-    if yaml.common.PY3:
+    if sys.version_info[0] >= 3:
         InitArgs = NewArgs
         InitArgsWithState = NewArgsWithState
 
@@ -266,9 +270,9 @@ def _serialize_value(data):
         return '{%s}' % ', '.join(items)
     elif isinstance(data, datetime.datetime):
         return repr(data.utctimetuple())
-    elif yaml.common.PY2 and isinstance(data, yaml.common.string_types):
+    elif sys.version_info[0] == 2 and isinstance(data, yaml.common.string_types):
         return yaml.common.ensure_str(data)
-    elif yaml.common.PY3 and isinstance(data, yaml.common.binary_type):
+    elif sys.version_info[0] >= 3 and isinstance(data, yaml.common.binary_type):
         return repr(data)[2:-1]
     elif isinstance(data, float) and data != data:
         return '?'

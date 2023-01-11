@@ -269,7 +269,7 @@ try:
                 function(*args, **kwds)
             finally:
                 _tear_down()
-        if yaml.common.PY2:
+        if sys.version_info[0] == 2:
             try:
                 wrapper.func_name = '%s_ext' % function.func_name
             except TypeError:
@@ -293,7 +293,7 @@ try:
                 if isinstance(value, types.FunctionType) and hasattr(value, 'unittest'):
                     functions.append(wrap_ext_function(value))
         for function in functions:
-            if yaml.common.PY3:
+            if sys.version_info[0] >= 3:
                 assert function.__name__ not in globals()
                 globals()[function.__name__] = function
             else:

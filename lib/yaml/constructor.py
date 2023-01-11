@@ -176,7 +176,7 @@ class BaseConstructor(object):
         mapping = {}
         for key_node, value_node in node.value:
             key = self.construct_object(key_node, deep=deep)
-            if common.PY2:
+            if sys.version_info[0] == 2:
                 try:
                     hash(key)
                 except TypeError as exc:
@@ -201,17 +201,17 @@ class BaseConstructor(object):
             pairs.append((key, value))
         return pairs
 
+    @classmethod
     def add_constructor(cls, tag, constructor):
         if not 'yaml_constructors' in cls.__dict__:
             cls.yaml_constructors = cls.yaml_constructors.copy()
         cls.yaml_constructors[tag] = constructor
-    add_constructor = classmethod(add_constructor)
 
+    @classmethod
     def add_multi_constructor(cls, tag_prefix, multi_constructor):
         if not 'yaml_multi_constructors' in cls.__dict__:
             cls.yaml_multi_constructors = cls.yaml_multi_constructors.copy()
         cls.yaml_multi_constructors[tag_prefix] = multi_constructor
-    add_multi_constructor = classmethod(add_multi_constructor)
 
 class SafeConstructor(BaseConstructor):
 
@@ -440,7 +440,7 @@ class SafeConstructor(BaseConstructor):
 
     def construct_yaml_str(self, node):
         value = self.construct_scalar(node)
-        if common.PY2:
+        if sys.version_info[0] == 2:
             try:
                 value = value.encode('ascii')
             except UnicodeEncodeError:
@@ -537,7 +537,7 @@ class FullConstructor(SafeConstructor):
         return self.state_keys_blacklist_regexp
 
     def construct_python_str(self, node):
-        if common.PY2:
+        if sys.version_info[0] == 2:
             return self.construct_scalar(node).encode('utf-8')
         return self.construct_scalar(node)
 
@@ -561,7 +561,7 @@ class FullConstructor(SafeConstructor):
                     "failed to decode base64 data: %s" % exc, node.start_mark)
 
     def construct_python_long(self, node):
-        if common.PY2:
+        if sys.version_info[0] == 2:
             return long(self.construct_yaml_int(node))
         return self.construct_yaml_int(node)
 
@@ -593,7 +593,7 @@ class FullConstructor(SafeConstructor):
         if u'.' in name:
             module_name, object_name = name.rsplit('.', 1)
         else:
-            module_name = '__builtin__' if common.PY2 else 'builtins'
+            module_name = '__builtin__' if sys.version_info[0] == 2 else 'builtins'
             object_name = name
         if unsafe:
             try:
@@ -638,7 +638,7 @@ class FullConstructor(SafeConstructor):
             raise ConstructorError("while constructing a Python instance", node.start_mark,
                     "expected a class, but found %r" % type(cls),
                     node.start_mark)
-        if common.PY2 and newobj and isinstance(cls, type(self.classobj)) and not args and not kwds:
+        if sys.version_info[0] == 2 and newobj and isinstance(cls, type(self.classobj)) and not args and not kwds:
             instance = self.classobj()
             instance.__class__ = cls
             return instance

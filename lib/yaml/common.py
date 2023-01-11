@@ -933,7 +933,7 @@ def ensure_str(s, encoding='utf-8', errors='strict'):
     # Optimization: Fast return for the common case.
     if type(s) is str:
         return s
-    if PY2 and isinstance(s, text_type):
+    if sys.version_info[0] == 2 and isinstance(s, text_type):
         return s.encode(encoding, errors)
     elif PY3 and isinstance(s, binary_type):
         return s.decode(encoding, errors)
@@ -969,7 +969,7 @@ def python_2_unicode_compatible(klass):
     To support Python 2 and 3 with a single code base, define a __str__ method
     returning text and apply this decorator to the class.
     """
-    if PY2:
+    if sys.version_info[0] == 2:
         if '__str__' not in klass.__dict__:
             raise ValueError("@python_2_unicode_compatible cannot be applied "
                              "to %s because it doesn't define __str__()." %

@@ -1,3 +1,5 @@
+import sys
+
 from . import common
 from .dumper import *
 from .error import *
@@ -212,7 +214,7 @@ def emit(events, stream=None, Dumper=Dumper,
 def serialize_all(nodes, stream=None, Dumper=Dumper,
                   canonical=None, indent=None, width=None,
                   allow_unicode=None, line_break=None,
-                  encoding='utf-8' if common.PY2 else None, explicit_start=None, explicit_end=None,
+                  encoding='utf-8' if sys.version_info[0] == 2 else None, explicit_start=None, explicit_end=None,
                   version=None, tags=None):
     """
     Serialize a sequence of representation trees into a YAML stream.
@@ -250,7 +252,7 @@ def dump_all(documents, stream=None, Dumper=Dumper,
              default_style=None, default_flow_style=False,
              canonical=None, indent=None, width=None,
              allow_unicode=None, line_break=None,
-             encoding='utf-8' if common.PY2 else None, explicit_start=None, explicit_end=None,
+             encoding='utf-8' if sys.version_info[0] == 2 else None, explicit_start=None, explicit_end=None,
              version=None, tags=None, sort_keys=True):
     """
     Serialize a sequence of Python objects into a YAML stream.

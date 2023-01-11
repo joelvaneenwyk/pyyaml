@@ -318,9 +318,9 @@ def find_test_filenames(directory):
     for filename in os.listdir(directory):
         if os.path.isfile(os.path.join(directory, filename)):
             base, ext = os.path.splitext(filename)
-            if yaml.common.PY3 and base.endswith('-py2'):
+            if sys.version_info[0] >= 3 and base.endswith('-py2'):
                 continue
-            if yaml.common.PY2 and base.endswith('-py3'):
+            if sys.version_info[0] == 2 and base.endswith('-py3'):
                 continue
             if not HAS_UCS4_SUPPORT and base.find('-ucs4-') > -1:
                 continue
@@ -353,7 +353,7 @@ def parse_arguments(args):
 
 def execute(function, filenames, verbose):
     # type: (Any, List[str], bool) -> Tuple[Optional[str], List[str], str, Optional[Any]]
-    if yaml.common.PY3:
+    if sys.version_info[0] >= 3:
         name = function.__name__
     elif hasattr(function, 'unittest_name'):
         name = function.unittest_name

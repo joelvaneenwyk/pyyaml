@@ -1,6 +1,7 @@
 import codecs
 import os
 import os.path
+import sys
 import tempfile
 
 import yaml
@@ -8,7 +9,7 @@ import yaml.common
 
 
 def _unicode_open(file, encoding, errors='strict'):
-    if yaml.common.PY2:
+    if sys.version_info[0] == 2:
         info = codecs.lookup(encoding)
         if isinstance(info, tuple):
             reader = info[2]
@@ -24,7 +25,7 @@ def _unicode_open(file, encoding, errors='strict'):
 def test_unicode_input(unicode_filename, verbose=False):
     data = open(unicode_filename, 'rb').read().decode('utf-8')
     value = ' '.join(data.split())
-    if yaml.common.PY3:
+    if sys.version_info[0] >= 3:
         output = yaml.full_load(data)
         assert output == value, (output, value)
         output = yaml.full_load(yaml.common.StringIO(data))
@@ -32,7 +33,7 @@ def test_unicode_input(unicode_filename, verbose=False):
         output = yaml.full_load(_unicode_open(yaml.common.BytesIO(yaml.common.ensure_binary(data)), 'utf-8'))
     assert output == value, (output, value)
     tests = []
-    if yaml.common.PY2:
+    if sys.version_info[0] == 2:
         tests.append(data)
     tests.extend([
         data.encode('utf-8'),
@@ -84,7 +85,7 @@ def test_unicode_output(unicode_filename, verbose=False):
             data2 = stream.getvalue()
             data3 = yaml.dump(value, encoding=encoding, allow_unicode=allow_unicode)
 
-            if yaml.common.PY2:
+            if sys.version_info[0] == 2:
                 stream = yaml.common.BytesIO()
                 yaml.dump(value, stream, encoding=encoding, allow_unicode=allow_unicode)
                 data4 = stream.getvalue()
@@ -134,7 +135,7 @@ def test_file_output(unicode_filename, verbose=False):
     os.close(handle)
     try:
         stream = yaml.common.StringIO()
-        if yaml.common.PY2:
+        if sys.version_info[0] == 2:
             yaml.dump(data, stream, allow_unicode=True)
             data1 = stream.getvalue()
             stream = open(filename, 'wb')
@@ -189,10 +190,10 @@ def test_unicode_transfer(unicode_filename, verbose=False):
             assert isinstance(output1, yaml.common.string_types), (type(output1), encoding)
         else:
             assert isinstance(output1, yaml.common.string_types), (type(output1), encoding)
-            if yaml.common.PY2:
+            if sys.version_info[0] == 2:
                 output1.decode(encoding)
-            assert isinstance(output2, yaml.common.binary_type if yaml.common.PY3 else yaml.common.string_types), (type(output2), encoding)
-            if yaml.common.PY2:
+            assert isinstance(output2, yaml.common.binary_type if sys.version_info[0] >= 3 else yaml.common.string_types), (type(output2), encoding)
+            if sys.version_info[0] == 2:
                 output2.decode('utf-8')
 
 

@@ -3,12 +3,13 @@ __all__ = ['BaseRepresenter', 'SafeRepresenter', 'Representer',
     'RepresenterError']
 
 import datetime
+import sys
 
 from . import common
 from .error import *
 from .nodes import *
 
-if common.PY2:
+if sys.version_info[0] == 2:
     import types
 
     import copy_reg
@@ -63,7 +64,7 @@ class BaseRepresenter:
             #self.represented_objects[alias_key] = None
             self.object_keeper.append(data)
         data_types = type(data).__mro__
-        if common.PY2 and type(data) is types.InstanceType:
+        if sys.version_info[0] == 2 and type(data) is types.InstanceType:
             data_types = self.get_classobj_bases(data.__class__)+list(data_types)
         if data_types[0] in self.yaml_representers:
             node = self.yaml_representers[data_types[0]](self, data)
@@ -83,17 +84,17 @@ class BaseRepresenter:
         #    self.represented_objects[alias_key] = node
         return node
 
+    @classmethod
     def add_representer(cls, data_type, representer):
         if not 'yaml_representers' in cls.__dict__:
             cls.yaml_representers = cls.yaml_representers.copy()
         cls.yaml_representers[data_type] = representer
-    add_representer = classmethod(add_representer)
 
+    @classmethod
     def add_multi_representer(cls, data_type, representer):
         if not 'yaml_multi_representers' in cls.__dict__:
             cls.yaml_multi_representers = cls.yaml_multi_representers.copy()
         cls.yaml_multi_representers[data_type] = representer
-    add_multi_representer = classmethod(add_multi_representer)
 
     def represent_scalar(self, tag, value, style=None):
         if style is None:
@@ -285,7 +286,7 @@ SafeRepresenter.add_representer(common.binary_type,
 SafeRepresenter.add_representer(str,
         SafeRepresenter.represent_str)
 
-if common.PY2:
+if sys.version_info[0] == 2:
     SafeRepresenter.add_representer(common.text_type,
             SafeRepresenter.represent_unicode)
 
@@ -436,7 +437,7 @@ class Representer(SafeRepresenter):
         # !!python/object/apply node.
 
         cls = type(data)
-        if common.PY2 and cls in copy_reg.dispatch_table:
+        if sys.version_info[0] == 2 and cls in copy_reg.dispatch_table:
             reduce = copy_reg.dispatch_table[cls](data)
         elif common.PY3 and cls in copyreg.dispatch_table:
             reduce = copyreg.dispatch_table[cls](data)
@@ -491,7 +492,7 @@ class Representer(SafeRepresenter):
         return self.represent_sequence(tag, [items])
 
 
-if common.PY2:
+if sys.version_info[0] == 2:
     Representer.add_representer(str,
         Representer.represent_str)
 

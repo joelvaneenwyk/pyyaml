@@ -10,8 +10,8 @@ Written by Kirill Simonov <xi@resolvent.net>.
 License: Whatever suitable for inclusion into the Pygments package.
 """
 
-from pygments.lexer import bygroups, ExtendedRegexLexer, include, LexerContext
-from pygments.token import Comment, Literal, Name, Punctuation, Text
+from pygments.lexer import bygroups, ExtendedRegexLexer, include, LexerContext  # type: ignore[import]
+from pygments.token import Comment, Literal, Name, Punctuation, Text  # type: ignore[import]
 
 __all__ = ['YAMLLexer']
 
