@@ -62,7 +62,7 @@ jobs:
                   python packaging/build/smoketest.py
 
             - name: Upload sdist artifact
-              uses: actions/upload-artifact@v2
+              uses: actions/upload-artifact@v3
               with:
                   name: dist
                   path: dist/*.tar.gz
@@ -82,13 +82,13 @@ jobs:
         steps:
             - name: Check cached libyaml state
               id: cached_libyaml
-              uses: actions/cache@v2
+              uses: actions/cache@v3
               with:
                   path: libyaml
                   key: libyaml_${{matrix.cfg.platform}}_${{matrix.cfg.arch}}_${{env.LIBYAML_REF}}
 
             - name: configure docker foreign arch support
-              uses: docker/setup-qemu-action@v1
+              uses: docker/setup-qemu-action@v2
               if: matrix.cfg.arch != 'x86_64' && steps.cached_libyaml.outputs.cache-hit != 'true'
 
             - name: Checkout pyyaml
@@ -141,7 +141,7 @@ jobs:
 
             - name: Fetch cached libyaml
               id: cached_libyaml
-              uses: actions/cache@v2
+              uses: actions/cache@v3
               with:
                   path: libyaml
                   key: libyaml_${{matrix.platform}}_${{matrix.arch}}_${{env.LIBYAML_REF}}
@@ -151,7 +151,7 @@ jobs:
               if: steps.cached_libyaml.outputs.cache-hit != 'true'
 
             - name: configure docker foreign arch support
-              uses: docker/setup-qemu-action@v1
+              uses: docker/setup-qemu-action@v2
               if: matrix.arch != 'x86_64'
 
             - name: Build/Test/Package
@@ -177,7 +177,7 @@ jobs:
                   python3 -m cibuildwheel --platform auto --output-dir dist .
 
             - name: Upload artifacts
-              uses: actions/upload-artifact@v2
+              uses: actions/upload-artifact@v3
               with:
                   name: dist
                   path: dist/*.whl
@@ -201,7 +201,7 @@ jobs:
         steps:
             - name: Check cached libyaml state
               id: cached_libyaml
-              uses: actions/cache@v2
+              uses: actions/cache@v3
               with:
                   path: libyaml
                   key: libyaml_macos_${{matrix.arch}}_${{env.LIBYAML_REF}}
@@ -261,7 +261,7 @@ jobs:
 
             - name: Get cached libyaml state
               id: cached_libyaml
-              uses: actions/cache@v2
+              uses: actions/cache@v3
               with:
                   path: libyaml
                   key: libyaml_macos_${{ matrix.arch || 'x86_64' }}_${{env.LIBYAML_REF}}
@@ -286,7 +286,7 @@ jobs:
                   python3 -m cibuildwheel --platform auto --output-dir dist .
 
             - name: Upload artifacts
-              uses: actions/upload-artifact@v2
+              uses: actions/upload-artifact@v3
               with:
                   name: dist
                   path: dist/*.whl
@@ -305,7 +305,7 @@ jobs:
         steps:
             - name: Get cached libyaml state
               id: cached_libyaml
-              uses: actions/cache@v2
+              uses: actions/cache@v3
               with:
                   path: libyaml
                   key: libyaml_${{matrix.platform}}_${{matrix.arch}}_${{env.LIBYAML_REF}}
@@ -372,7 +372,7 @@ jobs:
             - name: Get cached libyaml state
               if: matrix.spec != '2.7'
               id: cached_libyaml
-              uses: actions/cache@v2
+              uses: actions/cache@v3
               with:
                   path: libyaml
                   key: libyaml_${{matrix.platform}}_${{matrix.build_arch}}_${{env.LIBYAML_REF}}
@@ -415,7 +415,7 @@ jobs:
 
             - name: Upload artifacts
               if: matrix.spec != '2.7'
-              uses: actions/upload-artifact@v2
+              uses: actions/upload-artifact@v3
               with:
                   name: dist
                   path: dist/*.whl
