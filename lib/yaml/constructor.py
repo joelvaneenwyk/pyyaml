@@ -1,13 +1,3 @@
-
-__all__ = [
-    'BaseConstructor',
-    'SafeConstructor',
-    'FullConstructor',
-    'UnsafeConstructor',
-    'Constructor',
-    'ConstructorError'
-]
-
 import base64
 import binascii
 import datetime
@@ -22,6 +12,41 @@ from .nodes import *
 if sys.version_info[0] >= 3:
    import collections.abc
 
+try:
+    from typing import TYPE_CHECKING
+except ImportError:
+    TYPE_CHECKING = False
+
+if TYPE_CHECKING:
+    from typing import Any, Dict, Iterable, List, Optional, Protocol, TypeVar, Union
+
+    from .composer import Composer as ComposerProtocol
+
+    T = TypeVar('T')
+
+    class _ConstructorDefaultProtocol(Protocol):
+        def __call__(self, _self, node):
+            # type: (T, Node) -> Any
+            pass
+
+    class _ConstructorDeepProtocol(Protocol):
+        def __call__(self, _self, node, deep=False):
+            # type: (T, Node, bool) -> Any
+            pass
+
+    ConstructorProtocol = Union[_ConstructorDefaultProtocol, _ConstructorDeepProtocol]
+else:
+    class ComposerProtocol(object):  # type: ignore[no-redef]
+        pass
+
+__all__ = [
+    'BaseConstructor',
+    'SafeConstructor',
+    'FullConstructor',
+    'UnsafeConstructor',
+    'Constructor',
+    'ConstructorError'
+]
 
 class ConstructorError(MarkedYAMLError):
     pass
@@ -55,16 +80,17 @@ class timezone(datetime.tzinfo):
     __repr__ = __str__ = tzname
 
 
-class BaseConstructor(object):
+class BaseConstructor(ComposerProtocol):
 
-    yaml_constructors = {}
-    yaml_multi_constructors = {}
+    yaml_constructors = {}  # type: Dict[Optional[str], ConstructorProtocol]
+    yaml_multi_constructors = {}  # type: Dict[Optional[str], ConstructorProtocol]
 
     def __init__(self):
-        self.constructed_objects = {}
-        self.recursive_objects = {}
-        self.state_generators = []
-        self.deep_construct = False
+        # type: () -> None
+        self.constructed_objects = {}  # type: Dict[str, object]
+        self.recursive_objects = {}  # type: Dict[str, object]
+        self.state_generators = []  # type: List[Iterable[object]]
+        self.deep_construct = False  # type: bool
 
     def check_data(self):
         # If there are more documents available?
@@ -104,6 +130,7 @@ class BaseConstructor(object):
         return data
 
     def construct_object(self, node, deep=False):
+        # type: (Node, bool) -> Any
         if node in self.constructed_objects:
             return self.constructed_objects[node]
         if deep:
@@ -113,8 +140,8 @@ class BaseConstructor(object):
             raise ConstructorError(None, None,
                     "found unconstructable recursive node", node.start_mark)
         self.recursive_objects[node] = None
-        constructor = None
-        tag_suffix = None
+        constructor = None  # type: Optional[ConstructorProtocol]
+        tag_suffix = None  # type: Optional[str]
         if node.tag in self.yaml_constructors:
             constructor = self.yaml_constructors[node.tag]
         else:
@@ -136,7 +163,7 @@ class BaseConstructor(object):
                 elif isinstance(node, MappingNode):
                     constructor = self.__class__.construct_mapping
         if tag_suffix is None:
-            data = constructor(self, node)
+            data = constructor(self, node)  # type: Any
         else:
             data = constructor(self, tag_suffix, node)
         if isinstance(data, types.GeneratorType):
@@ -154,6 +181,7 @@ class BaseConstructor(object):
         return data
 
     def construct_scalar(self, node):
+        # type: (Node) -> Any
         if not isinstance(node, ScalarNode):
             raise ConstructorError(None, None,
                     "expected a scalar node, but found %s" % node.id,
@@ -161,6 +189,7 @@ class BaseConstructor(object):
         return node.value
 
     def construct_sequence(self, node, deep=False):
+        # type: (Node, bool) -> Any
         if not isinstance(node, SequenceNode):
             raise ConstructorError(None, None,
                     "expected a sequence node, but found %s" % node.id,
@@ -169,6 +198,7 @@ class BaseConstructor(object):
                 for child in node.value]
 
     def construct_mapping(self, node, deep=False):
+        # type: (Node, bool) -> Dict[str, Any]
         if not isinstance(node, MappingNode):
             raise ConstructorError(None, None,
                     "expected a mapping node, but found %s" % node.id,

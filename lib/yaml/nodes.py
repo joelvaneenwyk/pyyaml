@@ -1,10 +1,26 @@
+"""
+Implementation of class that represents a YAML node.
+"""
+
+try:
+    from typing import TYPE_CHECKING
+except ImportError:
+    TYPE_CHECKING = False
+
+if TYPE_CHECKING:
+    from typing import Any
+
+    from .error import Mark
+
 
 class Node(object):
     def __init__(self, tag, value, start_mark, end_mark):
+        # type: (Any, Any, Mark, Mark) -> None
         self.tag = tag
         self.value = value
         self.start_mark = start_mark
         self.end_mark = end_mark
+
     def __repr__(self):
         value = self.value
         #if isinstance(value, list):

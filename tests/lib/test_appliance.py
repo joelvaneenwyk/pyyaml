@@ -1,4 +1,3 @@
-
 # pyright: strict
 # pyright: reportTypeCommentUsage=false
 # cspell:ignore metafunc,maxunicode
@@ -13,10 +12,10 @@ import traceback
 import types
 
 try:
-    from pytest import Metafunc
+    from pytest import Metafunc  # type: ignore[import]
 except ImportError:
     try:
-        from _pytest.python import Metafunc
+        from _pytest.python import Metafunc  # type: ignore[import]
     except ImportError:
         class MetaFunc:
             pass
@@ -37,12 +36,8 @@ sys.path.insert(0, os.path.join(YAML_ROOT_DIR, 'tests', 'lib'))
 
 import yaml.common
 
-_CURRENT_FRAME = inspect.currentframe()
-
-DATA = 'tests/data'
-TEST_DIR = os.path.abspath(os.path.dirname(inspect.getfile(_CURRENT_FRAME) if _CURRENT_FRAME else __file__))
-DATA_DIR = os.path.abspath(os.path.normpath(os.path.join(TEST_DIR, os.pardir, 'data')))
 HAS_UCS4_SUPPORT = sys.maxunicode > 0xffff
+DATA_DIR = os.path.join(YAML_ROOT_DIR, 'tests', 'data')
 
 
 class DataFile(object):

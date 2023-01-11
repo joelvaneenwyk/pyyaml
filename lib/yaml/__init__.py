@@ -15,6 +15,14 @@ try:
 except (ImportError, AttributeError):
     __with_libyaml__ = False
 
+try:
+    from typing import TYPE_CHECKING
+except ImportError:
+    TYPE_CHECKING = False
+
+if TYPE_CHECKING:
+    from typing import List, Type, TypeVar
+
 
 # ------------------------------------------------------------------------------
 # Warnings control
@@ -403,9 +411,10 @@ class YAMLObject(object):
     and load itself from a YAML stream.
     """
 
-    __slots__ = ()  # no direct instantiation, so allow immutable subclasses
+    __slots__ = ()
+    """no direct instantiation, so allow immutable subclasses"""
 
-    yaml_loader = [Loader, FullLoader, UnsafeLoader]
+    yaml_loader = [Loader, FullLoader, UnsafeLoader]  # type: ignore
     yaml_dumper = Dumper
 
     yaml_tag = None

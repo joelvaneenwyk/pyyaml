@@ -1,6 +1,3 @@
-
-__all__ = ['BaseResolver', 'Resolver']
-
 import re
 
 try:
@@ -12,9 +9,12 @@ from . import common
 from .error import *
 from .nodes import *
 
+__all__ = ['BaseResolver', 'Resolver']
+
 
 class ResolverError(YAMLError):
     pass
+
 
 class BaseResolver(object):
 
@@ -26,6 +26,7 @@ class BaseResolver(object):
     yaml_path_resolvers = {}  # type: Dict[str, BaseResolver]
 
     def __init__(self):
+        # type: () -> None
         self.resolver_exact_paths = []  # type: List[str]
         self.resolver_prefix_paths = []  # type: List[str]
 

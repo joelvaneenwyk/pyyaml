@@ -1,14 +1,14 @@
-
-__all__ = ['Mark', 'YAMLError', 'MarkedYAMLError']
-
 import sys
 
 from . import common
+
+__all__ = ['Mark', 'YAMLError', 'MarkedYAMLError']
 
 
 class Mark(object):
 
     def __init__(self, name, index, line, column, buffer, pointer):
+        # type: (str, int, int, int, str, int) -> None
         self.name = name
         self.index = index
         self.line = line
