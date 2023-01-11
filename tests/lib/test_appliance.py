@@ -1,6 +1,18 @@
-import yaml.common
+import inspect
+import os
+import os.path
+import pprint
+import sys
+import traceback
+import types
 
-import sys, os, os.path, types, traceback, pprint
+YAML_ROOT_DIR = os.path.abspath(os.path.join(
+    str(os.path.dirname(inspect.getfile(inspect.currentframe()))),  # type: ignore[arg-type]
+    os.pardir, os.pardir))
+sys.path.insert(0, os.path.join(YAML_ROOT_DIR, 'lib'))
+sys.path.insert(0, os.path.join(YAML_ROOT_DIR, 'tests', 'lib'))
+
+import yaml.common
 
 DATA = 'tests/data'
 
