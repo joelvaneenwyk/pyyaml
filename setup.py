@@ -29,7 +29,7 @@ except ImportError:
         raise
 
 try:
-    from wheel.bdist_wheel import bdist_wheel
+    from wheel.bdist_wheel import bdist_wheel  # type: ignore[import]
 except ImportError:
     bdist_wheel = None
 

@@ -305,7 +305,7 @@ def find_test_functions(collections):
         if isinstance(collection_value, dict):
             collection = collection_value
         else:
-            collection = vars(collection_value)
+            collection = vars(collection_value)  # type: ignore
         for key in sorted(yaml.common.iterkeys(collection)):
             value = collection[key]  # type: Any
             if isinstance(value, types.FunctionType) and hasattr(value, 'unittest'):
@@ -313,7 +313,7 @@ def find_test_functions(collections):
     return functions
 
 def find_test_filenames(directory):
-    # type: (str) -> List[str]
+    # type: (str) -> List[Tuple[str, List[str]]]
     filenames = {}  # type: Dict[str, List[str]]
     for filename in os.listdir(directory):
         if os.path.isfile(os.path.join(directory, filename)):
@@ -401,20 +401,21 @@ def display(results, verbose):
         sys.stdout.write('='*75+'\n')
         sys.stdout.write('%s(%s): %s\n' % (name, ', '.join(filenames), kind))
         if kind == 'ERROR':
-            traceback.print_exception(file=sys.stdout, *info)
-        else:
+            traceback.print_exception(file=sys.stdout, *info)  # type: ignore
+        elif info:
             sys.stdout.write('Traceback (most recent call last):\n')
             traceback.print_tb(info[2], file=sys.stdout)
             sys.stdout.write('%s: see below\n' % info[0].__name__)
             sys.stdout.write('~'*75+'\n')
             for arg in info[1].args:
                 pprint.pprint(arg, stream=sys.stdout)
+
         for filename in filenames:
             sys.stdout.write('-'*75+'\n')
             sys.stdout.write('%s:\n' % filename)
             data = open(filename, 'rb').read()
             sys.stdout.write(data)
-            if data and data[-1] != '\n':
+            if data and data[-1] != int('\n'):
                 sys.stdout.write('\n')
     sys.stdout.write('='*75+'\n')
     sys.stdout.write('TESTS: %s\n' % total)
@@ -431,18 +432,19 @@ def run(collections, args=None):
     include_functions, include_filenames, verbose = parse_arguments(args)
     results = []
     for function in test_functions:
-        if yaml.common.PY3:
+        if sys.version_info[0] >= 3:
             name = function.__name__
         else:
             name = function.func_name
 
         if include_functions and name not in include_functions:
             continue
+
         if function.unittest:
             for base, exts in test_filenames:
                 if include_filenames and base not in include_filenames:
                     continue
-                filenames = []
+                filenames = []  # type: List[str]
                 for ext in function.unittest:
                     if ext not in exts:
                         break
