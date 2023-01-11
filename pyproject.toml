@@ -81,7 +81,12 @@ sections = [
 ]
 
 known_init = ["__init__"]
-known_local_folder = ["canonical", "conftest", "run_all_tests"]
+known_local_folder = [
+    "canonical",
+    "conftest",
+    "test_appliance",
+    "run_all_tests",
+]
 known_first_party = ["yaml"]
 known_third_party = ["pytest"]
 

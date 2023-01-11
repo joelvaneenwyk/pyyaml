@@ -92,6 +92,8 @@
         "PYMALLOC",
         "pyproject",
         "pyright",
+        "redef",
+        "representer",
         "Simonov"
     ],
     "python.analysis.typeCheckingMode": "off"

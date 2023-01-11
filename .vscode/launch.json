@@ -5,19 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "PyTest",
-            "type": "python",
-            "request": "launch",
-            "stopOnEntry": false,
-            "justMyCode": false,
-            "module": "pytest",
-            "args": ["--collect-only"],
-            "cwd": "${workspaceRoot}",
-            "env": {},
-            "envFile": "${workspaceRoot}/.env"
-        },
-        {
-            "name": "PyTest All",
+            "name": "Python: pytest",
             "type": "python",
             "request": "launch",
             "stopOnEntry": false,
@@ -29,7 +17,7 @@
             "envFile": "${workspaceRoot}/.env"
         },
         {
-            "name": "Python: Current File",
+            "name": "Python: {current file}",
             "type": "python",
             "request": "launch",
             "args": ["-m", "pytest", "--collect-only"],
@@ -38,11 +26,11 @@
             "justMyCode": true
         },
         {
-            "name": "pytest",
+            "name": "Python: `run_all_tests.py`",
             "type": "python",
             "request": "launch",
-            "args": ["-m", "pytest", "--collect-only"],
-            "program": "code",
+            "args": [],
+            "program": "${workspaceFolder}/tests/lib/run_all_tests.py",
             "console": "integratedTerminal",
             "justMyCode": true
         }
