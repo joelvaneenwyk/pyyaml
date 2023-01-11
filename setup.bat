@@ -6,6 +6,7 @@ if "%~1"=="clean" (
     rmdir /q /s "%~dp0libyaml"
     rmdir /q /s "%~dp0build"
     rmdir /q /s "%~dp0lib\PyYAML.egg-info"
+    exit /b 0
 )
 
 if "%~1"=="install" (
@@ -30,8 +31,7 @@ if "%~1"=="install" (
     scoop install pypy3
 )
 
-call pyenv exec python --version
-call pyenv exec python -m ensurepip
-call pyenv exec python -m pip install --upgrade pip
-call pyenv exec python -m pip install tox
-call pyenv exec python -m tox run-parallel
+call "%~dp0py.bat" --version
+call "%~dp0py.bat" -m ensurepip
+call "%~dp0py.bat" -m pip install --upgrade pip
+call "%~dp0py.bat" -m pip install tox pytest pyright mypy black flake8
