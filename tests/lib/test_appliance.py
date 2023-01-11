@@ -3,6 +3,7 @@
 # pyright: reportTypeCommentUsage=false
 # cspell:ignore metafunc,maxunicode
 
+import difflib
 import inspect
 import os
 import os.path
@@ -165,7 +166,8 @@ class InternalTestFunctions(object):
         skip_exts = getattr(function, 'skip', None) or []  # type: List[str]
         all_extensions = list(set(self._extensions_to_filename.keys()))
         unknown_extensions = set(unit_test_extensions).difference(set(unit_test_extensions).intersection(all_extensions))
-        assert not unknown_extensions, 'Unknown extensions: {}'.format(unknown_extensions)
+        if unknown_extensions:
+            raise Exception('Unknown extensions: {}'.format(unknown_extensions))
 
         filenames = []  # type: List[str]
         if function_name not in self._function_mapping:
@@ -179,23 +181,39 @@ class InternalTestFunctions(object):
 
             self._function_mapping[function_name] = filenames
 
+        def _normalize(input):
+            # type: (str) -> str
+            return input.replace('-', '_').replace('_filename', '').strip('.').lower()
+
+        extension_matches = unit_test_extensions or all_extensions
+        possibilities = {
+            _normalize(x): x
+            for x in extension_matches
+        }
+
         unmatched_args = list(arg_names)
-        for _iteration_index in range(2):
-            if len(extension_to_arg) == len(arg_names):
-                break
+        _iteration_index = 0
+        while (len(extension_to_arg) != len(arg_names)
+                    and unmatched_args
+                    and _iteration_index < 2):
+            _iteration_index += 1
+            arg_name = unmatched_args[0]
 
-            for extension in unit_test_extensions + all_extensions:
-                if extension in extension_to_arg:
-                    continue
+            matches = difflib.get_close_matches(
+                _normalize(arg_name),
+                list(possibilities.keys()),
+                1, 0.6)
+            if matches or len(unmatched_args) == 1:
+                if matches:
+                    extension = possibilities.pop(matches[0], None)
+                else:
+                    extension = list(possibilities.values())[0]
+                arg_to_extension[arg_name] = extension
+                extension_to_arg[extension] = arg_name
+                unmatched_args.remove(arg_name)
 
-                match = '{}_filename'.format(extension.strip('.'))
-                for arg_name in unmatched_args:
-                    if match == arg_name or (_iteration_index > 0 and len(unmatched_args) == 1):
-                        unmatched_args.remove(arg_name)
-                        arg_to_extension[arg_name] = extension
-                        extension_to_arg[extension] = arg_name
-                        break
-
+        if unmatched_args:
+            raise Exception("Invalid argument match.")
         permutations = [
             Permutation(function_name, x)
             for x in filenames or []
