@@ -177,4 +177,13 @@ doctest_encoding = "utf-8"
 
 # Order matters for these
 testpaths = ["tests/lib/"]
-norecursedirs = [".*", "_*", "node_modules", "tmp*"]
+norecursedirs = [
+    ".*",
+    "_*",
+    "node_modules",
+    "tmp*",
+    "build",
+    "libyaml",
+    "dist",
+    "examples",
+]
