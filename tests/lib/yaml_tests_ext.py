@@ -1,15 +1,21 @@
-import yaml, yaml.common
-import types, pprint, tempfile, sys, os
+import os
+import pprint
+import sys
+import tempfile
+import types
+
+import yaml
+import yaml.common
 
 try:
     import yaml._yaml
 
-    yaml.PyBaseLoader = yaml.BaseLoader
-    yaml.PySafeLoader = yaml.SafeLoader
-    yaml.PyLoader = yaml.Loader
-    yaml.PyBaseDumper = yaml.BaseDumper
-    yaml.PySafeDumper = yaml.SafeDumper
-    yaml.PyDumper = yaml.Dumper
+    yaml.PyBaseLoader = yaml.BaseLoader     # type: ignore[attr-defined]
+    yaml.PySafeLoader = yaml.SafeLoader     # type: ignore[attr-defined]
+    yaml.PyLoader = yaml.Loader             # type: ignore[attr-defined]
+    yaml.PyBaseDumper = yaml.BaseDumper     # type: ignore[attr-defined]
+    yaml.PySafeDumper = yaml.SafeDumper     # type: ignore[attr-defined]
+    yaml.PyDumper = yaml.Dumper             # type: ignore[attr-defined]
 
     old_scan = yaml.scan
     def new_scan(stream, Loader=yaml.CLoader):
@@ -294,10 +300,19 @@ try:
                 assert function.unittest_name not in globals()
                 globals()[function.unittest_name] = function
 
-    import test_tokens, test_structure, test_errors, test_resolver, test_constructor,   \
-            test_emitter, test_representer, test_recursive, test_input_output
-    wrap_ext([test_tokens, test_structure, test_errors, test_resolver, test_constructor,
-            test_emitter, test_representer, test_recursive, test_input_output])
+    import test_constructor
+    import test_emitter
+    import test_errors
+    import test_input_output
+    import test_recursive
+    import test_representer
+    import test_resolver
+    import test_structure
+    import test_tokens
+    wrap_ext([
+        test_tokens, test_structure, test_errors, test_resolver, test_constructor,
+        test_emitter, test_representer, test_recursive, test_input_output
+    ])
 except ImportError:
     pass
 

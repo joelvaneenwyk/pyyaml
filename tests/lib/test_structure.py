@@ -1,5 +1,9 @@
-import yaml, canonical
 import pprint
+
+import canonical
+
+import yaml
+
 
 def _convert_structure(loader):
     if loader.check_event(yaml.ScalarEvent):
