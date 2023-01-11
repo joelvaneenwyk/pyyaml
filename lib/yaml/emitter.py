@@ -14,7 +14,7 @@ from . import common
 from .error import YAMLError
 from .events import *
 
-if common.PY3:
+if sys.version_info[0] >= 3:
     import codecs
     import io
 
@@ -830,7 +830,7 @@ class Emitter(object):
                 data = common.ensure_binary(data)
         else:
             if self._stream_type is None:
-                if common.PY3 and not isinstance(self.stream, codecs.StreamReaderWriter) and (
+                if sys.version_info[0] >= 3 and not isinstance(self.stream, codecs.StreamReaderWriter) and (
                         isinstance(self.stream, common.BytesIO)
                         or (not isinstance(self.stream, io.TextIOBase)) and 'b' in getattr(self.stream, 'mode', '')):
                     self._stream_type = common.binary_type

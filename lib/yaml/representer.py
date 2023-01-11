@@ -168,7 +168,7 @@ class SafeRepresenter(BaseRepresenter):
                 u'null')
 
     def represent_str(self, data):
-        if common.PY3:
+        if sys.version_info[0] >= 3:
             represented = self.represent_scalar('tag:yaml.org,2002:str', data)
         else:
             tag = None
@@ -188,7 +188,7 @@ class SafeRepresenter(BaseRepresenter):
         return represented
 
     def represent_binary(self, data):
-        if common.PY3:
+        if sys.version_info[0] >= 3:
             if hasattr(base64, 'encodebytes'):
                 data = base64.encodebytes(data).decode('ascii')
             else:
@@ -439,7 +439,7 @@ class Representer(SafeRepresenter):
         cls = type(data)
         if sys.version_info[0] == 2 and cls in copy_reg.dispatch_table:
             reduce = copy_reg.dispatch_table[cls](data)
-        elif common.PY3 and cls in copyreg.dispatch_table:
+        elif sys.version_info[0] >= 3 and cls in copyreg.dispatch_table:
             reduce = copyreg.dispatch_table[cls](data)
         elif hasattr(data, '__reduce_ex__'):
             reduce = data.__reduce_ex__(2)
@@ -517,7 +517,7 @@ Representer.add_representer(tuple,
 Representer.add_representer(type,
         Representer.represent_name)
 
-if common.PY3:
+if sys.version_info[0] >= 3:
     Representer.add_representer(collections.OrderedDict,
             Representer.represent_ordered_dict)
 

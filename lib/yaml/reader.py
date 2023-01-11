@@ -24,7 +24,7 @@ import sys
 from . import common
 from .error import Mark, YAMLError
 
-if common.PY3:
+if sys.version_info[0] >= 3:
     import io
 
 has_ucs4 = sys.maxunicode > 0xffff
@@ -85,7 +85,7 @@ class Reader(object):
             self.name = "<string>"
             self.raw_buffer = stream
             self.determine_encoding()
-        elif common.PY3 and not isinstance(stream, codecs.StreamReaderWriter) and (
+        elif sys.version_info[0] >= 3 and not isinstance(stream, codecs.StreamReaderWriter) and (
                 isinstance(stream, common.BytesIO)
                 or (not isinstance(stream, io.TextIOBase)) and 'b' in getattr(stream, 'mode', '')):
             self.stream = stream

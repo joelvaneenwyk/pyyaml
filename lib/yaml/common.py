@@ -112,7 +112,7 @@ class MovedModule(_LazyDescr):
 
     def __init__(self, name, old, new=None):
         super(MovedModule, self).__init__(name)
-        if PY3:
+        if sys.version_info[0] >= 3:
             if new is None:
                 new = name
             self.mod = new
@@ -148,7 +148,7 @@ class MovedAttribute(_LazyDescr):
 
     def __init__(self, name, old_mod, new_mod, old_attr=None, new_attr=None):
         super(MovedAttribute, self).__init__(name)
-        if PY3:
+        if sys.version_info[0] >= 3:
             if new_mod is None:
                 new_mod = name
             self.mod = new_mod
@@ -529,7 +529,7 @@ def remove_move(name):
             raise AttributeError("no such move, %r" % (name,))
 
 
-if PY3:
+if sys.version_info[0] >= 3:
     _meth_func = "__func__"
     _meth_self = "__self__"
 
@@ -562,7 +562,7 @@ except NameError:
         return any("__call__" in klass.__dict__ for klass in type(obj).__mro__)
 
 
-if PY3:
+if sys.version_info[0] >= 3:
     def get_unbound_function(unbound):
         return unbound
 
@@ -713,7 +713,7 @@ def assertNotRegex(self, *args, **kwargs):
     return getattr(self, _assertNotRegex)(*args, **kwargs)
 
 
-if PY3:
+if sys.version_info[0] >= 3:
     exec_ = getattr(moves.builtins, "exec")
 
     def reraise(tp, value, tb=None):
@@ -935,7 +935,7 @@ def ensure_str(s, encoding='utf-8', errors='strict'):
         return s
     if sys.version_info[0] == 2 and isinstance(s, text_type):
         return s.encode(encoding, errors)
-    elif PY3 and isinstance(s, binary_type):
+    elif sys.version_info[0] >= 3 and isinstance(s, binary_type):
         return s.decode(encoding, errors)
     elif not isinstance(s, (text_type, binary_type)):
         raise TypeError("not expecting type '%s'" % type(s))

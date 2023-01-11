@@ -19,7 +19,7 @@ from . import common
 from .error import *
 from .nodes import *
 
-if common.PY3:
+if sys.version_info[0] >= 3:
    import collections.abc
 
 
@@ -339,7 +339,7 @@ class SafeConstructor(BaseConstructor):
     def construct_yaml_binary(self, node):
         value = self.construct_scalar(node)
         try:
-            if common.PY3:
+            if sys.version_info[0] >= 3:
                 return base64.b64decode(common.ensure_binary(value))
             return str(value).decode('base64')
         except (binascii.Error, UnicodeEncodeError) as exc:
