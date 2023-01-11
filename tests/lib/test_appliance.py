@@ -65,12 +65,12 @@ class Permutation(object):
         self.base, self.extension = os.path.splitext(self.name)
 
 
-class TestFunctionData(object):
+class InternalTestFunctions(object):
     """
     Cache of data for test functions.
     """
 
-    instance = None  # type: Optional[TestFunctionData]
+    instance = None  # type: Optional[InternalTestFunctions]
 
     def __init__(self, pytest_mode):
         # type: (bool) -> None
@@ -161,26 +161,11 @@ class TestFunctionData(object):
         extension_to_arg = {}  # type: Dict[str, str]
         arg_to_extension = {}  # type: Dict[str, str]
 
-        exts = getattr(function, 'unittest', None) or []  # type: List[str]
+        unit_test_extensions = getattr(function, 'unittest', None) or []  # type: List[str]
         skip_exts = getattr(function, 'skip', None) or []  # type: List[str]
-        extensions = set(self._extensions_to_filename.keys())
-
-        unmatched_args = list(arg_names)
-        for _iteration_index in range(2):
-            if len(extension_to_arg) == len(arg_names):
-                break
-
-            for ext in extensions:
-                if ext in extension_to_arg:
-                    continue
-
-                match = '{}_filename'.format(ext.strip('.'))
-                for arg_name in unmatched_args:
-                    if match == arg_name or (_iteration_index > 0 and len(unmatched_args) == 1):
-                        unmatched_args.remove(arg_name)
-                        arg_to_extension[arg_name] = ext
-                        extension_to_arg[ext] = arg_name
-                        break
+        all_extensions = list(set(self._extensions_to_filename.keys()))
+        unknown_extensions = set(unit_test_extensions).difference(set(unit_test_extensions).intersection(all_extensions))
+        assert not unknown_extensions, 'Unknown extensions: {}'.format(unknown_extensions)
 
         filenames = []  # type: List[str]
         if function_name not in self._function_mapping:
@@ -188,11 +173,28 @@ class TestFunctionData(object):
                 if self.include_filenames and data_file.base not in self.include_filenames:
                     continue
 
-                for ext in exts:
-                    if ext in exts and ext == data_file.extension and ext not in skip_exts:
+                for extension in unit_test_extensions:
+                    if extension in unit_test_extensions and extension == data_file.extension and extension not in skip_exts:
                         filenames.append(data_file.filename)
 
             self._function_mapping[function_name] = filenames
+
+        unmatched_args = list(arg_names)
+        for _iteration_index in range(2):
+            if len(extension_to_arg) == len(arg_names):
+                break
+
+            for extension in unit_test_extensions + all_extensions:
+                if extension in extension_to_arg:
+                    continue
+
+                match = '{}_filename'.format(extension.strip('.'))
+                for arg_name in unmatched_args:
+                    if match == arg_name or (_iteration_index > 0 and len(unmatched_args) == 1):
+                        unmatched_args.remove(arg_name)
+                        arg_to_extension[arg_name] = extension
+                        extension_to_arg[extension] = arg_name
+                        break
 
         permutations = [
             Permutation(function_name, x)
@@ -233,7 +235,7 @@ class TestFunctionData(object):
             function_value = getattr(function.definition, '_obj', None)  # type: Optional[Any]
         else:
             function_value = function
-        function_name = TestFunctionData._get_function_name(function_value)
+        function_name = InternalTestFunctions._get_function_name(function_value)
         if (function_name
                 and function_name not in self.functions
                 and (isinstance(function_value, types.FunctionType) or hasattr(function_value, 'unittest'))):
@@ -258,7 +260,7 @@ class TestFunctionData(object):
         # type: (Any, List[str], bool) -> Tuple[Optional[str], List[str], str, Optional[Any]]
         """Execute test function and pass in filenames as arguments."""
 
-        function_name = TestFunctionData._get_function_name(function)
+        function_name = InternalTestFunctions._get_function_name(function)
         if verbose:
             sys.stdout.write('='*75+'\n')
             sys.stdout.write('%s(%s)...\n' % (function_name, ', '.join(filenames)))
@@ -289,9 +291,9 @@ class TestFunctionData(object):
     @staticmethod
     def get_instance():
         """Return singleton instance of this class."""
-        if TestFunctionData.instance is None:
-            TestFunctionData.instance = TestFunctionData(pytest_mode=True)
-        return TestFunctionData.instance
+        if InternalTestFunctions.instance is None:
+            InternalTestFunctions.instance = InternalTestFunctions(pytest_mode=True)
+        return InternalTestFunctions.instance
 
 
 def find_test_functions(collections):
@@ -383,7 +385,7 @@ def execute(function, filenames, verbose):
     return (name, filenames, kind, info)
 
 def display(results, verbose):
-    # type: (List[Tuple[Optional[str], List[str], str, Optional[Any]]], bool) -> None
+    # type: (List[Tuple[Optional[str], List[str], str, Optional[Any]]], bool) -> bool
     if results and not verbose:
         sys.stdout.write('\n')
     total = len(results)
@@ -420,11 +422,12 @@ def display(results, verbose):
         sys.stdout.write('FAILURES: %s\n' % failures)
     if errors:
         sys.stdout.write('ERRORS: %s\n' % errors)
-    return not (failures or errors)
+    return not bool(failures or errors)
 
 def run(collections, args=None):
+    # type: (Any, Optional[List[str]]) -> bool
     test_functions = find_test_functions(collections)
-    test_filenames = find_test_filenames(DATA)
+    test_filenames = find_test_filenames(DATA_DIR)
     include_functions, include_filenames, verbose = parse_arguments(args)
     results = []
     for function in test_functions:
@@ -443,7 +446,7 @@ def run(collections, args=None):
                 for ext in function.unittest:
                     if ext not in exts:
                         break
-                    filenames.append(os.path.join(DATA, base+ext))
+                    filenames.append(os.path.join(DATA_DIR, base+ext))
                 else:
                     skip_exts = getattr(function, 'skip', [])
                     for skip_ext in skip_exts:
