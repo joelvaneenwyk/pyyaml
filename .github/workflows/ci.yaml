@@ -297,9 +297,9 @@ jobs:
         strategy:
             matrix:
                 include:
-                    - platform: windows-2016
+                    - platform: windows-2022
                       arch: x64
-                    - platform: windows-2016
+                    - platform: windows-2022
                       arch: win32
         steps:
             - name: Get cached libyaml state
