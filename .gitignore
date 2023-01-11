@@ -22,6 +22,9 @@ _pycache_/*
 .pytest_cache/
 .jython_cache/
 
+# this should be local to the current user as it varies by platform
+.python_version
+
 .DS_Store
 
 out.txt
