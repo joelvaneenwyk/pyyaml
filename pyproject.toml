@@ -110,6 +110,16 @@ warn_unreachable = false
 
 check_untyped_defs = false
 
+exclude = '''(?x)((
+        example_filename
+    )|(
+        (
+            .yarn|.tox|.ruff_cache|.tmp|node_modules|
+            build|examples
+        )[/\\].*
+    ))\.py$
+'''
+
 ################################################
 [tool.pyright]
 ################################################
