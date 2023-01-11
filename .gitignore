@@ -20,5 +20,8 @@ _pycache_/*
 .tmp/
 .mypy_cache/
 .pytest_cache/
+.jython_cache/
 
 .DS_Store
+
+out.txt
