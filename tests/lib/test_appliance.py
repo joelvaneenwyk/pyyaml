@@ -207,7 +207,7 @@ class InternalTestFunctions(object):
                 1, 0.6)
             if matches or len(unmatched_args) == 1:
                 if matches:
-                    extension = possibilities.pop(matches[0], None)
+                    extension = possibilities.pop(matches[0], '')
                 else:
                     extension = list(possibilities.values())[0]
                 arg_to_extension[arg_name] = extension
@@ -434,7 +434,7 @@ def display(results, verbose):
             sys.stdout.write('-'*75+'\n')
             sys.stdout.write('%s:\n' % filename)
             data = open(filename, 'rb').read()
-            sys.stdout.write(data)
+            sys.stdout.write(yaml.common.ensure_str(data))
             if data and data[-1] != int('\n'):
                 sys.stdout.write('\n')
     sys.stdout.write('='*75+'\n')
@@ -450,7 +450,7 @@ def run(collections, args=None):
     test_functions = find_test_functions(collections)
     test_filenames = find_test_filenames(DATA_DIR)
     include_functions, include_filenames, verbose = parse_arguments(args)
-    results = []
+    results = []  # type: List[Tuple[Optional[str], List[str], str, Optional[Any]]]
     for function in test_functions:
         if sys.version_info[0] >= 3:
             name = function.__name__
@@ -460,12 +460,18 @@ def run(collections, args=None):
         if include_functions and name not in include_functions:
             continue
 
-        if function.unittest:
+        attr_unittest = getattr(function, 'unittest', None)
+        if isinstance(attr_unittest, list):
+            function_unittest = attr_unittest  # type: List[str]
+        else:
+            function_unittest = []
+
+        if function_unittest:
             for base, exts in test_filenames:
                 if include_filenames and base not in include_filenames:
                     continue
                 filenames = []  # type: List[str]
-                for ext in function.unittest:
+                for ext in function_unittest:
                     if ext not in exts:
                         break
                     filenames.append(os.path.join(DATA_DIR, base+ext))
