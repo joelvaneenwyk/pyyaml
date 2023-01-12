@@ -1,4 +1,8 @@
-# build outputs
+#
+# Generated or temporary files to ignore in PyYAML package
+#
+
+# Build outputs
 /dist/*
 /build/*
 /lib/PyYAML.egg-info/*
@@ -12,7 +16,7 @@ MANIFEST
 PyYAML*/
 /libyaml/
 
-# cached Python binaries
+# Cached Python binaries
 *.py[cdo]
 _pycache_/*
 .package.lock
@@ -22,8 +26,8 @@ _pycache_/*
 .pytest_cache/
 .jython_cache/
 
-# this should be local to the current user as it varies by platform
-.python_version
+# This should be local to the current user as it varies by platform
+.python[_-]version
 
 .DS_Store
 

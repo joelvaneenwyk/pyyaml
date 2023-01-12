@@ -150,9 +150,11 @@
     },
     "cSpell.words": [
         "basestring",
+        "cmdclass",
         "cyaml",
         "CYTHON",
         "Descr",
+        "distclass",
         "fixturenames",
         "Kirill",
         "libera",
