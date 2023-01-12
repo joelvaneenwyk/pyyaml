@@ -1,20 +1,41 @@
 @echo off
 setlocal EnableDelayedExpansion
+    if "%~1"=="clean" (
+        call :Clean
+        exit /b
+    )
 
-if "%~1"=="clean" (
-    call :Clean
-    exit /b
+    if "%~1"=="install" (
+        shift
+        call :Install
+    )
+
+    call pyenv --version >nul 2>&1
+    if "!ERRORLEVEL!"=="0" (
+        call pyenv local ^
+            3.9.9 3.10.9 3.11.1 ^
+            2.6.6 2.7.18 ^
+            3.12.0a3 3.6.8 3.7.0-win32 3.8.10
+
+        call pyenv versions
+    )
+
+    set _jython=C:\Tools\jython2.7.3
+    if not exist "%_jython%" goto:$SkipJython
+        jython --version >nul 2>&1
+        if not "!ERRORLEVEL!"=="0" (
+            set "PATH=C:\Tools\jython2.7.3\bin;%PATH%"
+        )
+    :$SkipJython
+
+    call "%~dp0py.bat" --version
+    call "%~dp0py.bat" -m ensurepip
+    call "%~dp0py.bat" -m pip install --upgrade pip
+    call "%~dp0py.bat" -m pip install --upgrade tox pytest pyright mypy black flake8 pylint
+endlocal & (
+    set "PATH=%PATH%"
 )
 
-if "%~1"=="install" (
-    shift
-    call :Install
-)
-
-call "%~dp0py.bat" --version
-call "%~dp0py.bat" -m ensurepip
-call "%~dp0py.bat" -m pip install --upgrade pip
-call "%~dp0py.bat" -m pip install tox pytest pyright mypy black flake8
 if not "%~1"=="" call "%~dp0py.bat" %*
 exit /b
 
@@ -52,8 +73,3 @@ exit /b 0
         scoop install pypy3
     )
 exit /b
-
-pyenv local ^
-    3.9.9 3.10.9 3.11.1 ^
-    2.6.6 2.7.18 ^
-    3.12.0a3 3.6.8 3.7.0-win32 3.8.10
